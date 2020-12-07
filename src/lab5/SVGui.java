@@ -13,8 +13,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.table.TableColumnModel;
-
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Dimension;
@@ -23,6 +23,7 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
+import java.awt.ScrollPane;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -31,7 +32,6 @@ import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-
 public class SVGui extends JFrame {
 	
 	private JPanel cards;
@@ -43,13 +43,9 @@ public class SVGui extends JFrame {
 	public SVGui(String title) {
 		super(title);
 		setLocationRelativeTo(null);
-		//setSize(1000,500);
+		//this.setSize(300,200);
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-//		double width = screenSize.getWidth();
-//		double height = screenSize.getHeight();
-//		int w = (int) width;
-//		int h = (int) height;
-		this.setSize(screenSize);
+		setSize(screenSize);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		cards = new JPanel(new CardLayout());
@@ -61,8 +57,6 @@ public class SVGui extends JFrame {
 		getContentPane().add(cards, BorderLayout.CENTER);
 		setVisible(true);
 	}
-
-    
 	private JPanel toolsPanel() {
 		JPanel panel = new JPanel();
 		String[] toolList = {IGV, CC, CST};
@@ -95,10 +89,6 @@ public class SVGui extends JFrame {
 			{
 				try {
 					loadFromFile();
-					//CardLayout cl = (CardLayout)(cards.getLayout());
-					//cl.show(cards, "Image");
-					//this.add(new JScrollPane(table), BorderLayout.CENTER);
-					//this.setSize(screenSize);
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
@@ -110,9 +100,6 @@ public class SVGui extends JFrame {
 //		panel.add(new JButton("Browse"));
 //		panel.add(new JLabel("Sample Order"));
 //		panel.add(new JTextField(20));
-		
-	
-
 		return panel;
 	}
 	
@@ -138,10 +125,19 @@ public class SVGui extends JFrame {
 	{
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		double width = screenSize.getWidth();
-		double imgSize = width * .80;
-		double whatLeft = (width - imgSize) * .65;
-		int left = (int) whatLeft;
+		double imgSize = width * .85;
+//		double whatLeft = (width - imgSize) * .57;
+//		int left = (int) whatLeft;
 		int intSize = (int) imgSize;
+		double chromC = (width - imgSize) * .37;
+		int chromSize = (int) chromC;
+		double ss = (width - imgSize) * .23;
+		int startSize = (int) ss;
+		double check = (width - imgSize) * .15;
+		int checkSize = (int) check;
+//		double checkSub = (checkSize * .33);
+//		int toSub = (int) checkSub;
+		int left = (startSize + startSize + checkSize);
 		MyTableModel model = new MyTableModel();
 		
 		for (File f : files)
@@ -159,7 +155,6 @@ public class SVGui extends JFrame {
 		
 		JPanel jPanel = new JPanel();
 		jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.X_AXIS));
-		//.setLayout(BorderLayout);
 		JTextField myText = new JTextField(40);
 		myText.setPreferredSize(new Dimension(intSize, 30));
 		Font font = new Font("Courier", Font.BOLD,11);
@@ -173,30 +168,29 @@ public class SVGui extends JFrame {
 		table.setRowHeight(250);
 		TableColumnModel columnModel = table.getColumnModel();
 		columnModel.getColumn(4).setPreferredWidth(intSize);
+		columnModel.getColumn(0).setPreferredWidth(chromSize);
+		columnModel.getColumn(3).setPreferredWidth(checkSize);
+		columnModel.getColumn(1).setPreferredWidth(startSize);
+		columnModel.getColumn(2).setPreferredWidth(startSize);
 		table.setFillsViewportHeight(true);
-		//jPanel.add(JScrollPane(table), BorderLayout.CENTER)
 		JPanel wholePanel = new JPanel();
-		wholePanel.add(jPanel, BorderLayout.NORTH);
-		wholePanel.add(new JScrollPane(table), BorderLayout.CENTER);
-		
-		cards.add(wholePanel, "Image");
+		//wholePanel.add(myText, BorderLayout.NORTH);
+		wholePanel.add(table);
+		JScrollPane scrollPane = new JScrollPane(wholePanel);
+		scrollPane.setColumnHeaderView(jPanel);
+		cards.add(scrollPane, "Image");
 		CardLayout cl = (CardLayout)(cards.getLayout());
 		cl.show(cards, "Image");
-//		this.add(jPanel, BorderLayout.NORTH);
-//		this.add(new JScrollPane(table), BorderLayout.CENTER);
 		//this.setSize(screenSize);
-
 	}
 	
 	private Image getScaledImage(Image srcImg, int w, int h)
 	{
 		BufferedImage resizedImg = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2 = resizedImg.createGraphics();
-
 		g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 		g2.drawImage(srcImg, 0, 0, w, h, null);
 		g2.dispose();
-
 		return resizedImg;
 	}
 	private JPanel compCovPanel() {
@@ -223,11 +217,8 @@ public class SVGui extends JFrame {
 		panel.add(colorCombo);
 		return panel;
 	}
-
-
 	
 	public static void main(String[] args) {
 		new SVGui("SV Tools");
 	}
-
 }

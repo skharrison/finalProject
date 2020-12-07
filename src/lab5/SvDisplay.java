@@ -168,6 +168,10 @@ public class SvDisplay extends JFrame
 		TableColumnModel columnModel = table.getColumnModel();
 		columnModel.getColumn(4).setPreferredWidth(intSize);
 		table.setFillsViewportHeight(true);
+		//JPanel wholePanel = new JPanel();
+//		wholePanel.add(jPanel, BorderLayout.NORTH);
+//		wholePanel.add(new JScrollPane(table), BorderLayout.CENTER);
+//		this.add(wholePanel);
 		this.add(jPanel, BorderLayout.NORTH);
 		this.add(new JScrollPane(table), BorderLayout.CENTER);
 		this.setSize(screenSize);
