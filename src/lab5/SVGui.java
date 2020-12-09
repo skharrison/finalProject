@@ -14,9 +14,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -30,9 +32,11 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
-public class SVGui extends JFrame {
+public class SVGui extends JFrame  {
 	
 	private JPanel cards;
 	private static final long serialVersionUID = 1L;
@@ -210,13 +214,63 @@ public class SVGui extends JFrame {
 		panel.setLayout(new FlowLayout());
 		browser.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				System.out.println("Stuff.");
-			}
+				try 
+				{
+					selectTable();
+				} catch (IOException e1) 
+				{
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				
+
+				}
 		});
 		panel.add(colorLabel);
 		panel.add(colorCombo);
 		return panel;
 	}
+	
+	private void selectTable() throws IOException 
+	{
+		JFileChooser tableFile = new JFileChooser();
+		if (tableFile.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) 
+		{
+			File file = tableFile.getSelectedFile();
+			BufferedReader reader = new BufferedReader(new FileReader(file));
+			String header = reader.readLine();
+			String[] cols = header.split("\t");
+			DefaultTableModel model = new DefaultTableModel(cols,0);
+			for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
+			{
+				model.addRow(nextLine.split("\t"));
+			}
+			reader.close();
+			JTable table = new JTable();
+			table.setModel(model);
+			TableColumnModel columnModel = table.getColumnModel();
+			table.setPreferredScrollableViewportSize(table.getPreferredSize());
+
+
+			JPanel tablePanel = new JPanel();
+			tablePanel.add(new JScrollPane(table));
+			cards.add(tablePanel, "Highlight Table");
+			CardLayout cl = (CardLayout)(cards.getLayout());
+			cl.show(cards, "Highlight Table");
+		}
+		else 
+		{
+		}
+	}
+	
+	private void highlightTable(JTable table) 
+	{
+		
+	}
+	
+
+	
+
 	
 	public static void main(String[] args) {
 		new SVGui("SV Tools");
