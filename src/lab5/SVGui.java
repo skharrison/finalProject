@@ -14,9 +14,15 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -30,26 +36,32 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
-public class SVGui extends JFrame {
+import java.util.ArrayList;
+import java.util.List;
+
+public class SVGui extends JFrame 
+{
 	
 	private JPanel cards;
+	private File[] imageFiles;
+	private List<ImageIcon> scaled;
+	private Thread myRender;
 	private static final long serialVersionUID = 1L;
 	private final String IGV = "IGV Displayer";
 	private final String CC = "Compute Coverage";
 	private final String CST = "Color Sample Table";
 	
-	public SVGui(String title) {
+	public SVGui(String title) 
+	{
 		super(title);
 		setLocationRelativeTo(null);
-		//this.setSize(300,200);
-		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-		setSize(screenSize);
+		setSize(500,300);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
 		cards = new JPanel(new CardLayout());
-		//cards.setMaximumSize(new Dimension(w,h));
 		cards.add(igvDisplayPanel(),IGV);
 		cards.add(compCovPanel(),CC);
 		cards.add(comparePanel(),CST);
@@ -57,13 +69,16 @@ public class SVGui extends JFrame {
 		getContentPane().add(cards, BorderLayout.CENTER);
 		setVisible(true);
 	}
-	private JPanel toolsPanel() {
+	private JPanel toolsPanel() 
+	{
 		JPanel panel = new JPanel();
 		String[] toolList = {IGV, CC, CST};
 		JComboBox<String> toolCombo = new JComboBox<String>(toolList);
 		JLabel toolText = new JLabel("Tools:");
-		ItemListener toolItemListener = new ItemListener() {
-			public void itemStateChanged(ItemEvent evt) {
+		ItemListener toolItemListener = new ItemListener() 
+		{
+			public void itemStateChanged(ItemEvent evt) 
+			{
 			    CardLayout cl = (CardLayout)(cards.getLayout());
 			    cl.show(cards, (String)evt.getItem());
 			}
@@ -76,7 +91,8 @@ public class SVGui extends JFrame {
 		return panel;
 	}
 	
-	private JPanel igvDisplayPanel() {
+	private JPanel igvDisplayPanel() 
+	{
 		JPanel panel = new JPanel(new CardLayout());
 		JButton browser = new JButton("Browse");
 		panel.setLayout(new FlowLayout());
@@ -87,19 +103,16 @@ public class SVGui extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				try {
+				try 
+				{
 					loadFromFile();
-				} catch (IOException e1) {
+				} catch (IOException e1) 
+				{
 					e1.printStackTrace();
 				}
 			}
 		});
 		
-//		panel.add(new JLabel("Input BED file"));
-//		panel.add(new JTextField(20));
-//		panel.add(new JButton("Browse"));
-//		panel.add(new JLabel("Sample Order"));
-//		panel.add(new JTextField(20));
 		return panel;
 	}
 	
@@ -117,17 +130,17 @@ public class SVGui extends JFrame {
 			return;
 		}
 		File[] files = jfc.getSelectedFiles();
-		buildIGVTable(files);
-	
+		this.imageFiles = files;
+		ImageRender render = new ImageRender();
+		myRender = new Thread(render);
+		myRender.start();
 	}
 	
-	private void buildIGVTable(File[] files) throws IOException
+	private void buildIGVTable() throws IOException
 	{
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		double width = screenSize.getWidth();
 		double imgSize = width * .85;
-//		double whatLeft = (width - imgSize) * .57;
-//		int left = (int) whatLeft;
 		int intSize = (int) imgSize;
 		double chromC = (width - imgSize) * .37;
 		int chromSize = (int) chromC;
@@ -135,27 +148,32 @@ public class SVGui extends JFrame {
 		int startSize = (int) ss;
 		double check = (width - imgSize) * .15;
 		int checkSize = (int) check;
-//		double checkSub = (checkSize * .33);
-//		int toSub = (int) checkSub;
-		int left = (startSize + startSize + checkSize);
+		double last =  (width - imgSize) *.025;
+		int lastBit = (int) last;
+		int left = (startSize + startSize + checkSize + lastBit);
 		MyTableModel model = new MyTableModel();
-		
-		for (File f : files)
+		int index = 0;
+		for (File f : imageFiles)
 		{
 			String fName = f.getName();
 			String[] info = fName.split("_");
 			String chrom = info[0] + "_" + info[1];
 			String start = info[2];
 			String stop = info[3];
-			Image img = ImageIO.read(f);
-			Image scale = getScaledImage(img, intSize,250);
-			ImageIcon imgBed = new ImageIcon(scale);
+			ImageIcon imgBed = scaled.get(index);
 			model.addRow(new Object[] {chrom,start,stop,false,imgBed});
+			index++;
 		}
 		
+		JPanel buttonPanel = new JPanel();
+		JButton addLabel = new JButton("Add Strain Labels");
+		buttonPanel.add(addLabel);
+		JButton saveButton = new JButton("Save Checked Regions");
+		buttonPanel.add(saveButton);
+		buttonPanel.setBackground(Color.cyan);
 		JPanel jPanel = new JPanel();
 		jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.X_AXIS));
-		JTextField myText = new JTextField(40);
+		JTextField myText = new JTextField();
 		myText.setPreferredSize(new Dimension(intSize, 30));
 		Font font = new Font("Courier", Font.BOLD,11);
 		myText.setFont(font);
@@ -173,15 +191,18 @@ public class SVGui extends JFrame {
 		columnModel.getColumn(1).setPreferredWidth(startSize);
 		columnModel.getColumn(2).setPreferredWidth(startSize);
 		table.setFillsViewportHeight(true);
+		JPanel headerPanel = new JPanel();
+		headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
+		headerPanel.add(buttonPanel);
+		headerPanel.add(jPanel);
 		JPanel wholePanel = new JPanel();
-		//wholePanel.add(myText, BorderLayout.NORTH);
 		wholePanel.add(table);
 		JScrollPane scrollPane = new JScrollPane(wholePanel);
-		scrollPane.setColumnHeaderView(jPanel);
+		scrollPane.setColumnHeaderView(headerPanel);
 		cards.add(scrollPane, "Image");
 		CardLayout cl = (CardLayout)(cards.getLayout());
 		cl.show(cards, "Image");
-		//this.setSize(screenSize);
+		this.setSize(screenSize);
 	}
 	
 	private Image getScaledImage(Image srcImg, int w, int h)
@@ -193,7 +214,8 @@ public class SVGui extends JFrame {
 		g2.dispose();
 		return resizedImg;
 	}
-	private JPanel compCovPanel() {
+	private JPanel compCovPanel() 
+	{
 		JPanel panel = new JPanel();
 		panel.add(new JTextField("Compute Coverage tools to be displayed here."));
 		return panel;
@@ -210,15 +232,135 @@ public class SVGui extends JFrame {
 		panel.setLayout(new FlowLayout());
 		browser.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				System.out.println("Stuff.");
-			}
+				try 
+				{
+					selectTable();
+				} catch (IOException e1) 
+				{
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				
+
+				}
 		});
 		panel.add(colorLabel);
 		panel.add(colorCombo);
 		return panel;
 	}
 	
-	public static void main(String[] args) {
+	private void selectTable() throws IOException 
+	{
+		JFileChooser tableFile = new JFileChooser();
+		if (tableFile.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) 
+		{
+			File file = tableFile.getSelectedFile();
+			BufferedReader reader = new BufferedReader(new FileReader(file));
+			String header = reader.readLine();
+			String[] cols = header.split("\t");
+			DefaultTableModel model = new DefaultTableModel(cols,0);
+			for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
+			{
+				model.addRow(nextLine.split("\t"));
+			}
+			reader.close();
+			JTable table = new JTable();
+			table.setModel(model);
+			TableColumnModel columnModel = table.getColumnModel();
+			table.setPreferredScrollableViewportSize(table.getPreferredSize());
+			table.setRowHeight(75);
+			JPanel tablePanel = new JPanel();
+			tablePanel.add(new JScrollPane(table));
+			cards.add(tablePanel, "Highlight Table");
+			CardLayout cl = (CardLayout)(cards.getLayout());
+			cl.show(cards, "Highlight Table");
+		}
+		else 
+		{
+		}
+	}
+	
+	private void highlightTable(JTable table) 
+	{
+		
+	}
+	
+	
+	private void getCheckedData(JTable table)
+	{
+		for (int i = 0; i < table.getRowCount(); i++) 
+		{
+		     Boolean isChecked = Boolean.valueOf(table.getValueAt(i, 3).toString());
+
+		     if (isChecked) 
+		     {
+		       System.out.println("");
+		     } 
+		}
+	}
+	
+	public static void main(String[] args) 
+	{
 		new SVGui("SV Tools");
+	}
+	
+//	private class JComponentTableCellRenderer implements TableCellRenderer
+//	{
+//		  public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+//		      boolean hasFocus, int row, int column) 
+//		  {
+//		    return (Component) value;
+//		  }
+//	}
+	
+	private class ImageRender implements Runnable
+	{	
+		private final int imgWidth;
+		
+		public ImageRender()
+		{
+			Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+			double width = screenSize.getWidth();
+			double imgSize = width * .85;
+			imgWidth = (int) imgSize;
+		}
+		
+		
+		public void run()
+		{
+			try
+			{
+				final List<ImageIcon> list = new ArrayList<ImageIcon>();
+				for (File f : imageFiles)
+				{
+					Image img = ImageIO.read(f);
+					Image scale = getScaledImage(img, imgWidth,250);
+					ImageIcon imgI = new ImageIcon(scale);
+					list.add(imgI);
+					
+				}
+				
+				SwingUtilities.invokeLater(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						scaled = list;
+						try 
+						{
+							buildIGVTable();
+						} 
+						catch (IOException e) 
+						{
+							e.printStackTrace();
+						}
+					}
+				});
+			}
+			catch (Exception e)
+			{
+				//not sure
+			}
+		}
 	}
 }

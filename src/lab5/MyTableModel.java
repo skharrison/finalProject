@@ -29,6 +29,18 @@ public class MyTableModel extends DefaultTableModel {
 	public boolean isCellEditable(int row, int column)
 	{
 		return column == 3;
+//		if (column == 3)
+//		{
+//			return true;
+//		}
+//		else if (column == 4)
+//		{
+//			return true;
+//		}
+//		else
+//		{
+//			return false;
+//		}
 	}
 
 	public void setValueAt(Object value, int row, int column)
