@@ -15,6 +15,8 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -27,6 +29,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.ScrollPane;
@@ -252,13 +255,38 @@ public class SVGui extends JFrame
 	private void selectTable() throws IOException 
 	{
 		JFileChooser tableFile = new JFileChooser();
+		tableFile.setFileFilter(new FileFilter() 
+		{
+			
+
+			@Override
+			public boolean accept(File f) {
+				if(f.isDirectory()) 
+				{
+					return true;
+				}
+				else 
+				{
+					return f.getName().toLowerCase().endsWith(".txt");
+				}
+			}
+
+			@Override
+			public String getDescription() {
+				// TODO Auto-generated method stub
+				return ".txt";
+			}
+		});
+
 		if (tableFile.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) 
 		{
+			
 			File file = tableFile.getSelectedFile();
 			BufferedReader reader = new BufferedReader(new FileReader(file));
 			String header = reader.readLine();
 			String[] cols = header.split("\t");
 			DefaultTableModel model = new DefaultTableModel(cols,0);
+			
 			for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
 			{
 				model.addRow(nextLine.split("\t"));
@@ -267,9 +295,11 @@ public class SVGui extends JFrame
 			JTable table = new JTable();
 			table.setModel(model);
 			TableColumnModel columnModel = table.getColumnModel();
+			table.setPreferredSize(new Dimension(350,350));
 			table.setPreferredScrollableViewportSize(table.getPreferredSize());
-			table.setRowHeight(75);
+			table.setRowHeight(50);
 			JPanel tablePanel = new JPanel();
+			tablePanel.setLayout(new GridLayout(1,0));
 			tablePanel.add(new JScrollPane(table));
 			cards.add(tablePanel, "Highlight Table");
 			CardLayout cl = (CardLayout)(cards.getLayout());
