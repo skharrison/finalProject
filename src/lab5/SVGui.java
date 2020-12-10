@@ -1,6 +1,7 @@
 package lab5;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -9,12 +10,14 @@ import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -35,10 +38,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.font.FontRenderContext;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +61,9 @@ public class SVGui extends JFrame
 	private final String IGV = "IGV Displayer";
 	private final String CC = "Compute Coverage";
 	private final String CST = "Color Sample Table";
+	private JLabel imageLabels;
+	private JButton browser;
+	private JTable imageTable;
 	
 	public SVGui(String title) 
 	{
@@ -93,11 +103,15 @@ public class SVGui extends JFrame
 	
 	private JPanel igvDisplayPanel() 
 	{
-		JPanel panel = new JPanel(new CardLayout());
-		JButton browser = new JButton("Browse");
+		final JPanel panel = new JPanel(new CardLayout());
+		browser = new JButton("Browse");
 		panel.setLayout(new FlowLayout());
 		panel.add(new JLabel("Upload Images"));
 		panel.add(browser);
+		JButton addLabel = new JButton("Add Strain Labels");
+		panel.setLayout(new FlowLayout());
+		panel.add(addLabel);
+		browser.setEnabled(false);
 		browser.addActionListener(new ActionListener()
 		{
 			@Override
@@ -109,6 +123,29 @@ public class SVGui extends JFrame
 				} catch (IOException e1) 
 				{
 					e1.printStackTrace();
+				}
+			}
+		});
+		
+		addLabel.addActionListener(new ActionListener() 
+		{
+			@Override
+			public void actionPerformed(ActionEvent ev)
+			{
+				String answer = JOptionPane.showInputDialog(panel,"Input Sample Names In order (comma seperated):", null);
+								
+				if (answer == null)
+				{
+					//Do nothing 
+				}
+				else 
+				{
+					String typedPattern = answer.toUpperCase();
+					Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+					double width = screenSize.getWidth();
+					double imgSize = width * .85;
+					final int intSize = (int) imgSize;
+					makeSampleLabel(typedPattern, intSize);	
 				}
 			}
 		});
@@ -148,9 +185,6 @@ public class SVGui extends JFrame
 		int startSize = (int) ss;
 		double check = (width - imgSize) * .15;
 		int checkSize = (int) check;
-		double last =  (width - imgSize) *.025;
-		int lastBit = (int) last;
-		int left = (startSize + startSize + checkSize + lastBit);
 		MyTableModel model = new MyTableModel();
 		int index = 0;
 		for (File f : imageFiles)
@@ -166,43 +200,149 @@ public class SVGui extends JFrame
 		}
 		
 		JPanel buttonPanel = new JPanel();
-		JButton addLabel = new JButton("Add Strain Labels");
-		buttonPanel.add(addLabel);
 		JButton saveButton = new JButton("Save Checked Regions");
-		buttonPanel.add(saveButton);
+		buttonPanel.add(saveButton,BorderLayout.WEST);
 		buttonPanel.setBackground(Color.cyan);
+		AffineTransform affinetransform = new AffineTransform();     
+		FontRenderContext frc = new FontRenderContext(affinetransform,true,true);     
+		Font font = new Font("Courier", Font.BOLD,12);
+		int textwidth = (int)(font.getStringBounds("Strain Labels: ", frc).getWidth());
+		
+		double Wleft = width - imgSize;
+		int wl = (int) Wleft; 
+		int left = wl - textwidth;
 		JPanel jPanel = new JPanel();
 		jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.X_AXIS));
-		JTextField myText = new JTextField();
-		myText.setPreferredSize(new Dimension(intSize, 30));
-		Font font = new Font("Courier", Font.BOLD,11);
-		myText.setFont(font);
 		JLabel label = new JLabel("Strain Labels: ");
+		label.setFont(font);
 		jPanel.add(label);
-		Box.Filler hFill = new Box.Filler(new Dimension(5,0), new Dimension(left, 0), new Dimension(100, 0));
-		jPanel.add(hFill);
-		jPanel.add(myText);
-		JTable table = new JTable(model);
-		table.setRowHeight(250);
-		TableColumnModel columnModel = table.getColumnModel();
+		jPanel.add(Box.createHorizontalStrut(left));
+		jPanel.add(imageLabels);
+	    Border blackline = BorderFactory.createLineBorder(Color.black);
+	    jPanel.setBorder(blackline);
+	    buttonPanel.setBorder(blackline);
+		imageTable = new JTable(model);
+		imageTable.setRowHeight(250);
+		TableColumnModel columnModel = imageTable.getColumnModel();
 		columnModel.getColumn(4).setPreferredWidth(intSize);
 		columnModel.getColumn(0).setPreferredWidth(chromSize);
 		columnModel.getColumn(3).setPreferredWidth(checkSize);
 		columnModel.getColumn(1).setPreferredWidth(startSize);
 		columnModel.getColumn(2).setPreferredWidth(startSize);
-		table.setFillsViewportHeight(true);
+		imageTable.setFillsViewportHeight(true);
+		saveButton.addActionListener(new ActionListener() 
+		{
+			@Override
+			public void actionPerformed(ActionEvent ev)
+			{
+				getCheckedData(imageTable);
+			}
+		});
+	
+		
 		JPanel headerPanel = new JPanel();
 		headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
 		headerPanel.add(buttonPanel);
 		headerPanel.add(jPanel);
 		JPanel wholePanel = new JPanel();
-		wholePanel.add(table);
+		wholePanel.add(imageTable);
 		JScrollPane scrollPane = new JScrollPane(wholePanel);
 		scrollPane.setColumnHeaderView(headerPanel);
 		cards.add(scrollPane, "Image");
 		CardLayout cl = (CardLayout)(cards.getLayout());
 		cl.show(cards, "Image");
 		this.setSize(screenSize);
+		
+	}
+	
+	private void makeSampleLabel(String labels, int width)
+	{
+		String[] allLabels = labels.split(",");
+		String joinString = String.join("|", allLabels);
+		int numSamples = allLabels.length;
+		AffineTransform affinetransform = new AffineTransform();     
+		FontRenderContext frc = new FontRenderContext(affinetransform,true,true);     
+		Font font = new Font("Courier", Font.BOLD,12);
+		int textwidth = (int)(font.getStringBounds(joinString, frc).getWidth());
+		int space = (int)(font.getStringBounds(" ", frc).getWidth());
+		int allowableSp = (width - textwidth) / space;
+		int howMany = (allowableSp) / (numSamples);
+		List<String> ll = new ArrayList<String>();
+		for (String a : allLabels) 
+		{
+			int left = howMany/2;
+			int right = howMany - left;
+			ll.add("|");
+			for (int i = 0; i < left; ++i)
+			{
+				ll.add(" ");
+			}
+			ll.add(a);
+			for (int i = 0; i < right; ++i)
+			{
+				ll.add(" ");
+			}
+			
+			if (a.equals(allLabels[allLabels.length-1]))
+				ll.add("|");
+		}
+		
+		String finalLabel = String.join("",ll);
+		JLabel label = new JLabel(finalLabel);
+		label.setFont(font);
+		browser.setEnabled(true);
+		imageLabels = label;
+	}
+	
+	private void getCheckedData(JTable table)
+	{
+		JFileChooser jfc = new JFileChooser();
+		
+		if( jfc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION)
+		{
+			return;
+		}
+		
+		if( jfc.getSelectedFile() == null)
+		{
+			return;
+		}
+			
+		File chosenFile = jfc.getSelectedFile();
+			
+		if( jfc.getSelectedFile().exists())
+		{
+			String message = "File " + jfc.getSelectedFile().getName() + " exists.  Overwrite?";
+				
+			if( JOptionPane.showConfirmDialog(this, message) != 
+					JOptionPane.YES_OPTION)
+					return;			
+		}
+		
+		try
+		{
+			BufferedWriter writer= new BufferedWriter(new FileWriter(chosenFile));
+			for (int i = 0; i < table.getRowCount(); i++) 
+			{
+			     Boolean isChecked = Boolean.valueOf(table.getValueAt(i, 3).toString());
+
+			     if (isChecked) 
+			     {
+			       writer.write(table.getModel().getValueAt(i, 0).toString());
+			       writer.write("\t");
+			       writer.write(table.getModel().getValueAt(i, 1).toString());
+			       writer.write("\t");
+			       writer.write(table.getModel().getValueAt(i, 2).toString());
+			       writer.write("\n");
+			     } 
+			}
+			writer.close();
+		}
+		catch(Exception ex)
+		{
+			ex.printStackTrace();
+			JOptionPane.showMessageDialog(this, ex.getMessage(), "Could not write file", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 	
 	private Image getScaledImage(Image srcImg, int w, int h)
@@ -268,12 +408,13 @@ public class SVGui extends JFrame
 			table.setModel(model);
 			TableColumnModel columnModel = table.getColumnModel();
 			table.setPreferredScrollableViewportSize(table.getPreferredSize());
-			table.setRowHeight(75);
+			table.setRowHeight(25);
 			JPanel tablePanel = new JPanel();
 			tablePanel.add(new JScrollPane(table));
 			cards.add(tablePanel, "Highlight Table");
 			CardLayout cl = (CardLayout)(cards.getLayout());
 			cl.show(cards, "Highlight Table");
+			table.setFillsViewportHeight(true);
 		}
 		else 
 		{
@@ -285,19 +426,6 @@ public class SVGui extends JFrame
 		
 	}
 	
-	
-	private void getCheckedData(JTable table)
-	{
-		for (int i = 0; i < table.getRowCount(); i++) 
-		{
-		     Boolean isChecked = Boolean.valueOf(table.getValueAt(i, 3).toString());
-
-		     if (isChecked) 
-		     {
-		       System.out.println("");
-		     } 
-		}
-	}
 	
 	public static void main(String[] args) 
 	{
