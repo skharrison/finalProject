@@ -30,6 +30,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.ScrollPane;
@@ -44,6 +45,8 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -392,13 +395,37 @@ public class SVGui extends JFrame
 	private void selectTable() throws IOException 
 	{
 		JFileChooser tableFile = new JFileChooser();
+		tableFile.setFileFilter(new FileFilter() 
+		{
+			
+
+			@Override
+			public boolean accept(File f) {
+				if(f.isDirectory()) 
+				{
+					return true;
+				}
+				else 
+				{
+					return f.getName().toLowerCase().endsWith(".txt");
+				}
+			}
+
+			@Override
+			public String getDescription() {
+				return ".txt";
+			}
+		});
+
 		if (tableFile.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) 
 		{
+			
 			File file = tableFile.getSelectedFile();
 			BufferedReader reader = new BufferedReader(new FileReader(file));
 			String header = reader.readLine();
 			String[] cols = header.split("\t");
 			DefaultTableModel model = new DefaultTableModel(cols,0);
+			
 			for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
 			{
 				model.addRow(nextLine.split("\t"));
@@ -407,14 +434,15 @@ public class SVGui extends JFrame
 			JTable table = new JTable();
 			table.setModel(model);
 			TableColumnModel columnModel = table.getColumnModel();
+			table.setPreferredSize(new Dimension(350,350));
 			table.setPreferredScrollableViewportSize(table.getPreferredSize());
-			table.setRowHeight(25);
+			table.setRowHeight(50);
 			JPanel tablePanel = new JPanel();
+			tablePanel.setLayout(new GridLayout(1,0));
 			tablePanel.add(new JScrollPane(table));
 			cards.add(tablePanel, "Highlight Table");
 			CardLayout cl = (CardLayout)(cards.getLayout());
 			cl.show(cards, "Highlight Table");
-			table.setFillsViewportHeight(true);
 		}
 		else 
 		{
