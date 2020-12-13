@@ -51,7 +51,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SVGui extends JFrame 
 {
@@ -437,6 +440,7 @@ public class SVGui extends JFrame
 			table.setPreferredSize(new Dimension(350,350));
 			table.setPreferredScrollableViewportSize(table.getPreferredSize());
 			table.setRowHeight(50);
+			highlightTable(table);
 			JPanel tablePanel = new JPanel();
 			tablePanel.setLayout(new GridLayout(1,0));
 			tablePanel.add(new JScrollPane(table));
@@ -451,7 +455,21 @@ public class SVGui extends JFrame
 	
 	private void highlightTable(JTable table) 
 	{
-		
+		Map<Integer,String> strains = new LinkedHashMap<Integer,String>();
+		for(int i = 0; i < table.getModel().getRowCount(); i++)
+		{
+			strains.put(i,table.getModel().getValueAt(i, 4).toString());
+			
+		}
+		for (Map.Entry<Integer, String> entry : strains.entrySet())
+		{
+			String[] sepStrains = entry.getValue().split(":");
+			for (String s : sepStrains)
+			{
+				int col = table.getColumn(s).getModelIndex();
+				System.out.println(String.valueOf(entry.getKey()) + " " + String.valueOf(col));
+			}
+		}
 	}
 	
 	
