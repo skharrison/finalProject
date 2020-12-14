@@ -18,6 +18,7 @@ import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -63,6 +64,7 @@ public class SVGui extends JFrame
 	private File[] imageFiles;
 	private List<ImageIcon> scaled;
 	private Thread myRender;
+	private JComboBox<String> colorCombo;
 	private static final long serialVersionUID = 1L;
 	private final String IGV = "IGV Displayer";
 	private final String CC = "Compute Coverage";
@@ -70,6 +72,10 @@ public class SVGui extends JFrame
 	private JLabel imageLabels;
 	private JButton browser;
 	private JTable imageTable;
+	private Map<Integer,List<Integer>> highlightCells;
+	private Color specifiedColor;
+ 
+
 	
 	public SVGui(String title) 
 	{
@@ -368,14 +374,40 @@ public class SVGui extends JFrame
 	}
 	
 	private JPanel comparePanel() {
-		String[] colors = {"Pink", "Red", "Blue", "Green"};
+		String[] colors = {"Pink", "Red", "Yellow", "Green"};
 		JPanel panel = new JPanel();
 		JButton browser = new JButton("Browse");
 		JLabel colorLabel = new JLabel("Highlight Color");
-		JComboBox<String> colorCombo = new JComboBox<String>(colors);
+		
+		colorCombo = new JComboBox<String>(colors);
+		colorCombo.setSelectedIndex(-1);
 		panel.add(new JLabel("Input Table"));
 		panel.add(browser);
 		panel.setLayout(new FlowLayout());
+		colorCombo.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String color = colorCombo.getSelectedItem().toString();
+				if (color == "Yellow")
+				{
+					specifiedColor = Color.YELLOW;
+				}
+				else if(color == "Pink")
+				{
+					specifiedColor = Color.PINK;
+				}
+				else if(color == "Red")
+				{
+					specifiedColor = Color.RED;
+				}
+				else
+				{
+					specifiedColor = Color.GREEN;
+				}
+			}
+			
+		});
 		browser.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try 
@@ -436,7 +468,6 @@ public class SVGui extends JFrame
 			reader.close();
 			JTable table = new JTable();
 			table.setModel(model);
-			TableColumnModel columnModel = table.getColumnModel();
 			table.setPreferredSize(new Dimension(350,350));
 			table.setPreferredScrollableViewportSize(table.getPreferredSize());
 			table.setRowHeight(50);
@@ -455,6 +486,8 @@ public class SVGui extends JFrame
 	
 	private void highlightTable(JTable table) 
 	{
+
+		highlightCells = new LinkedHashMap<Integer,List<Integer>>();
 		Map<Integer,String> strains = new LinkedHashMap<Integer,String>();
 		for(int i = 0; i < table.getModel().getRowCount(); i++)
 		{
@@ -464,12 +497,24 @@ public class SVGui extends JFrame
 		for (Map.Entry<Integer, String> entry : strains.entrySet())
 		{
 			String[] sepStrains = entry.getValue().split(":");
+			List<Integer> specCols = new ArrayList<Integer>();
 			for (String s : sepStrains)
 			{
-				int col = table.getColumn(s).getModelIndex();
-				System.out.println(String.valueOf(entry.getKey()) + " " + String.valueOf(col));
+	
+
+				specCols.add(table.getColumn(s).getModelIndex());
+				
 			}
+			highlightCells.putIfAbsent(entry.getKey(),specCols);
 		}
+		HighlightCellRenderer cellHighlight = new HighlightCellRenderer();
+		for (int i = 0; i < table.getColumnCount(); i++)
+		{
+			TableColumn col = table.getColumnModel().getColumn(i);
+			col.setCellRenderer(cellHighlight);
+		}
+		
+//		table.setDefaultRenderer(Object.class,cellHighlight);
 	}
 	
 	
@@ -486,6 +531,43 @@ public class SVGui extends JFrame
 //		    return (Component) value;
 //		  }
 //	}
+	
+	private class HighlightCellRenderer extends DefaultTableCellRenderer 
+	{
+
+		private static final long serialVersionUID = 1L;
+
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column)
+		{
+			Component cell = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+			
+			List<Integer> rowToHighlight = new ArrayList<Integer>();
+			
+			for (Map.Entry<Integer, List<Integer>> entry : highlightCells.entrySet())
+			{
+				if (entry.getValue().contains(column))
+				{
+					rowToHighlight.add(entry.getKey());
+				}
+
+			}
+			
+			if (rowToHighlight.contains(row))
+			{
+				cell.setBackground(specifiedColor);
+			}
+			else
+			{
+				cell.setBackground(Color.WHITE);
+			}
+
+			
+		
+
+			return cell;
+			
+		}
+	}
 	
 	private class ImageRender implements Runnable
 	{	
