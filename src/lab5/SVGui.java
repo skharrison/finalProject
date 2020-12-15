@@ -1,6 +1,7 @@
 package lab5;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -9,14 +10,15 @@ import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.border.Border;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -38,13 +40,26 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.font.FontRenderContext;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SVGui extends JFrame 
 {
@@ -53,10 +68,23 @@ public class SVGui extends JFrame
 	private File[] imageFiles;
 	private List<ImageIcon> scaled;
 	private Thread myRender;
+	private JComboBox<String> colorCombo;
 	private static final long serialVersionUID = 1L;
 	private final String IGV = "IGV Displayer";
 	private final String CC = "Compute Coverage";
 	private final String CST = "Color Sample Table";
+	private JLabel imageLabels;
+	private JButton browser;
+	private JTable imageTable;
+	private Map<Integer,List<Integer>> highlightCells;
+	private Color specifiedColor;
+	private File[] bamFiles;
+	private File bedFile;
+	private File covOut;
+	private String bedCommand;
+	private Thread bedThread;
+ 
+
 	
 	public SVGui(String title) 
 	{
@@ -96,11 +124,15 @@ public class SVGui extends JFrame
 	
 	private JPanel igvDisplayPanel() 
 	{
-		JPanel panel = new JPanel(new CardLayout());
-		JButton browser = new JButton("Browse");
+		final JPanel panel = new JPanel(new CardLayout());
+		browser = new JButton("Browse");
 		panel.setLayout(new FlowLayout());
 		panel.add(new JLabel("Upload Images"));
 		panel.add(browser);
+		JButton addLabel = new JButton("Add Strain Labels");
+		panel.setLayout(new FlowLayout());
+		panel.add(addLabel);
+		browser.setEnabled(false);
 		browser.addActionListener(new ActionListener()
 		{
 			@Override
@@ -112,6 +144,29 @@ public class SVGui extends JFrame
 				} catch (IOException e1) 
 				{
 					e1.printStackTrace();
+				}
+			}
+		});
+		
+		addLabel.addActionListener(new ActionListener() 
+		{
+			@Override
+			public void actionPerformed(ActionEvent ev)
+			{
+				String answer = JOptionPane.showInputDialog(panel,"Input Sample Names In order (comma seperated):", null);
+								
+				if (answer == null)
+				{
+					//Do nothing 
+				}
+				else 
+				{
+					String typedPattern = answer.toUpperCase();
+					Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+					double width = screenSize.getWidth();
+					double imgSize = width * .85;
+					final int intSize = (int) imgSize;
+					makeSampleLabel(typedPattern, intSize);	
 				}
 			}
 		});
@@ -151,9 +206,6 @@ public class SVGui extends JFrame
 		int startSize = (int) ss;
 		double check = (width - imgSize) * .15;
 		int checkSize = (int) check;
-		double last =  (width - imgSize) *.025;
-		int lastBit = (int) last;
-		int left = (startSize + startSize + checkSize + lastBit);
 		MyTableModel model = new MyTableModel();
 		int index = 0;
 		for (File f : imageFiles)
@@ -169,43 +221,149 @@ public class SVGui extends JFrame
 		}
 		
 		JPanel buttonPanel = new JPanel();
-		JButton addLabel = new JButton("Add Strain Labels");
-		buttonPanel.add(addLabel);
 		JButton saveButton = new JButton("Save Checked Regions");
-		buttonPanel.add(saveButton);
+		buttonPanel.add(saveButton,BorderLayout.WEST);
 		buttonPanel.setBackground(Color.cyan);
+		AffineTransform affinetransform = new AffineTransform();     
+		FontRenderContext frc = new FontRenderContext(affinetransform,true,true);     
+		Font font = new Font("Courier", Font.BOLD,12);
+		int textwidth = (int)(font.getStringBounds("Strain Labels: ", frc).getWidth());
+		
+		double Wleft = width - imgSize;
+		int wl = (int) Wleft; 
+		int left = wl - textwidth;
 		JPanel jPanel = new JPanel();
 		jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.X_AXIS));
-		JTextField myText = new JTextField();
-		myText.setPreferredSize(new Dimension(intSize, 30));
-		Font font = new Font("Courier", Font.BOLD,11);
-		myText.setFont(font);
 		JLabel label = new JLabel("Strain Labels: ");
+		label.setFont(font);
 		jPanel.add(label);
-		Box.Filler hFill = new Box.Filler(new Dimension(5,0), new Dimension(left, 0), new Dimension(100, 0));
-		jPanel.add(hFill);
-		jPanel.add(myText);
-		JTable table = new JTable(model);
-		table.setRowHeight(250);
-		TableColumnModel columnModel = table.getColumnModel();
+		jPanel.add(Box.createHorizontalStrut(left));
+		jPanel.add(imageLabels);
+	    Border blackline = BorderFactory.createLineBorder(Color.black);
+	    jPanel.setBorder(blackline);
+	    buttonPanel.setBorder(blackline);
+		imageTable = new JTable(model);
+		imageTable.setRowHeight(250);
+		TableColumnModel columnModel = imageTable.getColumnModel();
 		columnModel.getColumn(4).setPreferredWidth(intSize);
 		columnModel.getColumn(0).setPreferredWidth(chromSize);
 		columnModel.getColumn(3).setPreferredWidth(checkSize);
 		columnModel.getColumn(1).setPreferredWidth(startSize);
 		columnModel.getColumn(2).setPreferredWidth(startSize);
-		table.setFillsViewportHeight(true);
+		imageTable.setFillsViewportHeight(true);
+		saveButton.addActionListener(new ActionListener() 
+		{
+			@Override
+			public void actionPerformed(ActionEvent ev)
+			{
+				getCheckedData(imageTable);
+			}
+		});
+	
+		
 		JPanel headerPanel = new JPanel();
 		headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
 		headerPanel.add(buttonPanel);
 		headerPanel.add(jPanel);
 		JPanel wholePanel = new JPanel();
-		wholePanel.add(table);
+		wholePanel.add(imageTable);
 		JScrollPane scrollPane = new JScrollPane(wholePanel);
 		scrollPane.setColumnHeaderView(headerPanel);
 		cards.add(scrollPane, "Image");
 		CardLayout cl = (CardLayout)(cards.getLayout());
 		cl.show(cards, "Image");
 		this.setSize(screenSize);
+		
+	}
+	
+	private void makeSampleLabel(String labels, int width)
+	{
+		String[] allLabels = labels.split(",");
+		String joinString = String.join("|", allLabels);
+		int numSamples = allLabels.length;
+		AffineTransform affinetransform = new AffineTransform();     
+		FontRenderContext frc = new FontRenderContext(affinetransform,true,true);     
+		Font font = new Font("Courier", Font.BOLD,12);
+		int textwidth = (int)(font.getStringBounds(joinString, frc).getWidth());
+		int space = (int)(font.getStringBounds(" ", frc).getWidth());
+		int allowableSp = (width - textwidth) / space;
+		int howMany = (allowableSp) / (numSamples);
+		List<String> ll = new ArrayList<String>();
+		for (String a : allLabels) 
+		{
+			int left = howMany/2;
+			int right = howMany - left;
+			ll.add("|");
+			for (int i = 0; i < left; ++i)
+			{
+				ll.add(" ");
+			}
+			ll.add(a);
+			for (int i = 0; i < right; ++i)
+			{
+				ll.add(" ");
+			}
+			
+			if (a.equals(allLabels[allLabels.length-1]))
+				ll.add("|");
+		}
+		
+		String finalLabel = String.join("",ll);
+		JLabel label = new JLabel(finalLabel);
+		label.setFont(font);
+		browser.setEnabled(true);
+		imageLabels = label;
+	}
+	
+	private void getCheckedData(JTable table)
+	{
+		JFileChooser jfc = new JFileChooser();
+		
+		if( jfc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION)
+		{
+			return;
+		}
+		
+		if( jfc.getSelectedFile() == null)
+		{
+			return;
+		}
+			
+		File chosenFile = jfc.getSelectedFile();
+			
+		if( jfc.getSelectedFile().exists())
+		{
+			String message = "File " + jfc.getSelectedFile().getName() + " exists.  Overwrite?";
+				
+			if( JOptionPane.showConfirmDialog(this, message) != 
+					JOptionPane.YES_OPTION)
+					return;			
+		}
+		
+		try
+		{
+			BufferedWriter writer= new BufferedWriter(new FileWriter(chosenFile));
+			for (int i = 0; i < table.getRowCount(); i++) 
+			{
+			     Boolean isChecked = Boolean.valueOf(table.getValueAt(i, 3).toString());
+
+			     if (isChecked) 
+			     {
+			       writer.write(table.getModel().getValueAt(i, 0).toString());
+			       writer.write("\t");
+			       writer.write(table.getModel().getValueAt(i, 1).toString());
+			       writer.write("\t");
+			       writer.write(table.getModel().getValueAt(i, 2).toString());
+			       writer.write("\n");
+			     } 
+			}
+			writer.close();
+		}
+		catch(Exception ex)
+		{
+			ex.printStackTrace();
+			JOptionPane.showMessageDialog(this, ex.getMessage(), "Could not write file", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 	
 	private Image getScaledImage(Image srcImg, int w, int h)
@@ -219,20 +377,237 @@ public class SVGui extends JFrame
 	}
 	private JPanel compCovPanel() 
 	{
-		JPanel panel = new JPanel();
-		panel.add(new JTextField("Compute Coverage tools to be displayed here."));
-		return panel;
+		JPanel covPanel = new JPanel();
+		covPanel.setLayout(new BoxLayout(covPanel, BoxLayout.Y_AXIS));
+		JButton submit = new JButton("Submit");
+		JPanel multiPanel = makeMultiPanel();
+		covPanel.add(multiPanel);
+		JPanel sPanel = new JPanel();
+		sPanel.add(submit);
+		covPanel.add(sPanel);
+		submit.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try 
+				{
+					bedCommand = makeBedMultiCommand();
+					CommandRunner myCommand = new CommandRunner();
+					bedThread = new Thread(myCommand);
+					bedThread.start();
+				} 
+				catch (Exception e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		return covPanel;
+	}
+	
+	private JPanel makeMultiPanel() 
+	{
+		JLabel lbl = new JLabel("Bedtools Option: ");
+		String[] choices = { "multicov", "igv"};
+		JComboBox<String> cb = new JComboBox<String>(choices);
+		JPanel multiPanel = new JPanel();
+		multiPanel.setLayout(new GridLayout(4,4));
+		multiPanel.add(lbl);
+		multiPanel.add(cb);
+		JButton bamBrowse = new JButton("Browse");
+		bamBrowse.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try 
+				{
+					loadInBams();
+				} catch (IOException e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		
+		multiPanel.add(new JLabel("Select Bam Files: "));
+		multiPanel.add(bamBrowse);
+		JButton bedBrowse = new JButton("Browse");
+		
+		bedBrowse.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try 
+				{
+					loadBed();
+				} catch (IOException e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		
+		multiPanel.add(new JLabel("Input Bed File:  "));
+		multiPanel.add(bedBrowse);
+		JButton outFile = new JButton("Browse");
+		
+		outFile.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try 
+				{
+					chooseOutput();
+				} catch (IOException e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		multiPanel.add(new JLabel("Output File: "));
+		multiPanel.add(outFile);
+		return multiPanel;
+	}
+	private void loadInBams() throws IOException
+	{
+		
+		JFileChooser jfc = new JFileChooser();
+		jfc.setMultiSelectionEnabled(true);
+	
+		if (jfc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
+			return;
+		
+		if( jfc.getSelectedFile() == null)
+		{
+			return;
+		}
+		File[] files = jfc.getSelectedFiles();
+		this.bamFiles = files;
+	}
+	
+	private void loadBed() throws IOException
+	{
+
+		JFileChooser jfc = new JFileChooser();
+		jfc.setFileFilter(new FileFilter() 
+		{
+			
+
+			@Override
+			public boolean accept(File f) {
+				if(f.isDirectory()) 
+				{
+					return true;
+				}
+				else 
+				{
+					return f.getName().toLowerCase().endsWith(".bed");
+				}
+			}
+
+			@Override
+			public String getDescription() {
+				// TODO Auto-generated method stub
+				return ".bed";
+			}
+		});
+		
+		if (jfc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) 
+		{
+			File file = jfc.getSelectedFile();
+			this.bedFile = file;
+		}
+
+	}
+	
+	private void chooseOutput() throws IOException
+	{
+		JFileChooser jfc = new JFileChooser();
+				
+		if( jfc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION)
+		{
+			return;
+		}
+		
+		if( jfc.getSelectedFile() == null)
+		{
+			return;
+		}
+			
+		File chosenFile = jfc.getSelectedFile();
+			
+		if( jfc.getSelectedFile().exists())
+		{
+			String message = "File " + jfc.getSelectedFile().getName() + " exists.  Overwrite?";
+				
+			if( JOptionPane.showConfirmDialog(this, message) != 
+					JOptionPane.YES_OPTION)
+					return;			
+		}
+		
+		this.covOut = chosenFile;
+	}
+	
+	private String makeBedMultiCommand()
+	{
+		StringBuffer allBams = new StringBuffer();
+		allBams.append("bedtools multicov -bams ");
+		for (File f : bamFiles)
+		{
+			String fName = f.getAbsolutePath();
+			allBams.append(fName);
+			allBams.append(" ");
+		}
+		
+		String myBed = bedFile.getAbsolutePath();
+		allBams.append("-bed " + myBed);
+		String outFile = covOut.getAbsolutePath();
+		allBams.append(" > " + outFile);
+		String theCommand = allBams.toString();
+		System.out.println(theCommand);
+		return theCommand;
+		
 	}
 	
 	private JPanel comparePanel() {
-		String[] colors = {"Pink", "Red", "Blue", "Green"};
+		String[] colors = {"Pink", "Red", "Yellow", "Green"};
 		JPanel panel = new JPanel();
 		JButton browser = new JButton("Browse");
 		JLabel colorLabel = new JLabel("Highlight Color");
-		JComboBox<String> colorCombo = new JComboBox<String>(colors);
+		
+		colorCombo = new JComboBox<String>(colors);
+		colorCombo.setSelectedIndex(-1);
 		panel.add(new JLabel("Input Table"));
 		panel.add(browser);
 		panel.setLayout(new FlowLayout());
+		colorCombo.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String color = colorCombo.getSelectedItem().toString();
+				if (color == "Yellow")
+				{
+					specifiedColor = Color.YELLOW;
+				}
+				else if(color == "Pink")
+				{
+					specifiedColor = Color.PINK;
+				}
+				else if(color == "Red")
+				{
+					specifiedColor = Color.RED;
+				}
+				else
+				{
+					specifiedColor = Color.GREEN;
+				}
+			}
+			
+		});
 		browser.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try 
@@ -273,7 +648,6 @@ public class SVGui extends JFrame
 
 			@Override
 			public String getDescription() {
-				// TODO Auto-generated method stub
 				return ".txt";
 			}
 		});
@@ -294,10 +668,10 @@ public class SVGui extends JFrame
 			reader.close();
 			JTable table = new JTable();
 			table.setModel(model);
-			TableColumnModel columnModel = table.getColumnModel();
 			table.setPreferredSize(new Dimension(350,350));
 			table.setPreferredScrollableViewportSize(table.getPreferredSize());
 			table.setRowHeight(50);
+			highlightTable(table);
 			JPanel tablePanel = new JPanel();
 			tablePanel.setLayout(new GridLayout(1,0));
 			tablePanel.add(new JScrollPane(table));
@@ -312,22 +686,37 @@ public class SVGui extends JFrame
 	
 	private void highlightTable(JTable table) 
 	{
-		
-	}
-	
-	
-	private void getCheckedData(JTable table)
-	{
-		for (int i = 0; i < table.getRowCount(); i++) 
-		{
-		     Boolean isChecked = Boolean.valueOf(table.getValueAt(i, 3).toString());
 
-		     if (isChecked) 
-		     {
-		       System.out.println("");
-		     } 
+		highlightCells = new LinkedHashMap<Integer,List<Integer>>();
+		Map<Integer,String> strains = new LinkedHashMap<Integer,String>();
+		for(int i = 0; i < table.getModel().getRowCount(); i++)
+		{
+			strains.put(i,table.getModel().getValueAt(i, 4).toString());
+			
 		}
+		for (Map.Entry<Integer, String> entry : strains.entrySet())
+		{
+			String[] sepStrains = entry.getValue().split(":");
+			List<Integer> specCols = new ArrayList<Integer>();
+			for (String s : sepStrains)
+			{
+	
+
+				specCols.add(table.getColumn(s).getModelIndex());
+				
+			}
+			highlightCells.putIfAbsent(entry.getKey(),specCols);
+		}
+		HighlightCellRenderer cellHighlight = new HighlightCellRenderer();
+		for (int i = 0; i < table.getColumnCount(); i++)
+		{
+			TableColumn col = table.getColumnModel().getColumn(i);
+			col.setCellRenderer(cellHighlight);
+		}
+		
+//		table.setDefaultRenderer(Object.class,cellHighlight);
 	}
+	
 	
 	public static void main(String[] args) 
 	{
@@ -342,6 +731,92 @@ public class SVGui extends JFrame
 //		    return (Component) value;
 //		  }
 //	}
+	
+	private class HighlightCellRenderer extends DefaultTableCellRenderer 
+	{
+
+		private static final long serialVersionUID = 1L;
+
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column)
+		{
+			Component cell = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+			
+			List<Integer> rowToHighlight = new ArrayList<Integer>();
+			
+			for (Map.Entry<Integer, List<Integer>> entry : highlightCells.entrySet())
+			{
+				if (entry.getValue().contains(column))
+				{
+					rowToHighlight.add(entry.getKey());
+				}
+
+			}
+			
+			if (rowToHighlight.contains(row))
+			{
+				cell.setBackground(specifiedColor);
+			}
+			else
+			{
+				cell.setBackground(Color.WHITE);
+			}
+
+			
+		
+
+			return cell;
+			
+		}
+	}
+	
+	private class CommandRunner implements Runnable 
+	{
+
+		@Override
+		public void run() 
+		{
+			try
+			{
+				executeCommands();
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
+			
+		}
+		
+		public void executeCommands() throws IOException, InterruptedException {
+
+		    File tempScript = createTempScript();
+
+		    try
+		    {
+		        ProcessBuilder pb = new ProcessBuilder("bash", tempScript.toString());
+		        pb.inheritIO();
+		        Process process = pb.start();
+		        process.waitFor();
+		    } 
+		    finally 
+		    {
+		        tempScript.delete();
+		        System.out.println("Done Making Table");
+		    }
+		}
+
+		public File createTempScript() throws IOException 
+		{
+		    File tempScript = File.createTempFile("script", null);
+		    OutputStreamWriter streamWriter = new OutputStreamWriter(new FileOutputStream(tempScript));
+		    PrintWriter printWriter = new PrintWriter(streamWriter);
+		    printWriter.println("#!/bin/bash");
+		    printWriter.println("cd /usr/local/bin");
+		    printWriter.println(bedCommand);
+		    printWriter.close();
+		    return tempScript;
+		}
+		
+	}
 	
 	private class ImageRender implements Runnable
 	{	
