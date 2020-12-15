@@ -46,11 +46,15 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -74,6 +78,11 @@ public class SVGui extends JFrame
 	private JTable imageTable;
 	private Map<Integer,List<Integer>> highlightCells;
 	private Color specifiedColor;
+	private File[] bamFiles;
+	private File bedFile;
+	private File covOut;
+	private String bedCommand;
+	private Thread bedThread;
  
 
 	
@@ -368,9 +377,200 @@ public class SVGui extends JFrame
 	}
 	private JPanel compCovPanel() 
 	{
-		JPanel panel = new JPanel();
-		panel.add(new JTextField("Compute Coverage tools to be displayed here."));
-		return panel;
+		JPanel covPanel = new JPanel();
+		covPanel.setLayout(new BoxLayout(covPanel, BoxLayout.Y_AXIS));
+		JButton submit = new JButton("Submit");
+		JPanel multiPanel = makeMultiPanel();
+		covPanel.add(multiPanel);
+		JPanel sPanel = new JPanel();
+		sPanel.add(submit);
+		covPanel.add(sPanel);
+		submit.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try 
+				{
+					bedCommand = makeBedMultiCommand();
+					CommandRunner myCommand = new CommandRunner();
+					bedThread = new Thread(myCommand);
+					bedThread.start();
+				} 
+				catch (Exception e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		return covPanel;
+	}
+	
+	private JPanel makeMultiPanel() 
+	{
+		JLabel lbl = new JLabel("Bedtools Option: ");
+		String[] choices = { "multicov", "igv"};
+		JComboBox<String> cb = new JComboBox<String>(choices);
+		JPanel multiPanel = new JPanel();
+		multiPanel.setLayout(new GridLayout(4,4));
+		multiPanel.add(lbl);
+		multiPanel.add(cb);
+		JButton bamBrowse = new JButton("Browse");
+		bamBrowse.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try 
+				{
+					loadInBams();
+				} catch (IOException e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		
+		multiPanel.add(new JLabel("Select Bam Files: "));
+		multiPanel.add(bamBrowse);
+		JButton bedBrowse = new JButton("Browse");
+		
+		bedBrowse.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try 
+				{
+					loadBed();
+				} catch (IOException e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		
+		multiPanel.add(new JLabel("Input Bed File:  "));
+		multiPanel.add(bedBrowse);
+		JButton outFile = new JButton("Browse");
+		
+		outFile.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try 
+				{
+					chooseOutput();
+				} catch (IOException e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		multiPanel.add(new JLabel("Output File: "));
+		multiPanel.add(outFile);
+		return multiPanel;
+	}
+	private void loadInBams() throws IOException
+	{
+		
+		JFileChooser jfc = new JFileChooser();
+		jfc.setMultiSelectionEnabled(true);
+	
+		if (jfc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
+			return;
+		
+		if( jfc.getSelectedFile() == null)
+		{
+			return;
+		}
+		File[] files = jfc.getSelectedFiles();
+		this.bamFiles = files;
+	}
+	
+	private void loadBed() throws IOException
+	{
+
+		JFileChooser jfc = new JFileChooser();
+		jfc.setFileFilter(new FileFilter() 
+		{
+			
+
+			@Override
+			public boolean accept(File f) {
+				if(f.isDirectory()) 
+				{
+					return true;
+				}
+				else 
+				{
+					return f.getName().toLowerCase().endsWith(".bed");
+				}
+			}
+
+			@Override
+			public String getDescription() {
+				// TODO Auto-generated method stub
+				return ".bed";
+			}
+		});
+		
+		if (jfc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) 
+		{
+			File file = jfc.getSelectedFile();
+			this.bedFile = file;
+		}
+
+	}
+	
+	private void chooseOutput() throws IOException
+	{
+		JFileChooser jfc = new JFileChooser();
+				
+		if( jfc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION)
+		{
+			return;
+		}
+		
+		if( jfc.getSelectedFile() == null)
+		{
+			return;
+		}
+			
+		File chosenFile = jfc.getSelectedFile();
+			
+		if( jfc.getSelectedFile().exists())
+		{
+			String message = "File " + jfc.getSelectedFile().getName() + " exists.  Overwrite?";
+				
+			if( JOptionPane.showConfirmDialog(this, message) != 
+					JOptionPane.YES_OPTION)
+					return;			
+		}
+		
+		this.covOut = chosenFile;
+	}
+	
+	private String makeBedMultiCommand()
+	{
+		StringBuffer allBams = new StringBuffer();
+		allBams.append("bedtools multicov -bams ");
+		for (File f : bamFiles)
+		{
+			String fName = f.getAbsolutePath();
+			allBams.append(fName);
+			allBams.append(" ");
+		}
+		
+		String myBed = bedFile.getAbsolutePath();
+		allBams.append("-bed " + myBed);
+		String outFile = covOut.getAbsolutePath();
+		allBams.append(" > " + outFile);
+		String theCommand = allBams.toString();
+		System.out.println(theCommand);
+		return theCommand;
+		
 	}
 	
 	private JPanel comparePanel() {
@@ -567,6 +767,55 @@ public class SVGui extends JFrame
 			return cell;
 			
 		}
+	}
+	
+	private class CommandRunner implements Runnable 
+	{
+
+		@Override
+		public void run() 
+		{
+			try
+			{
+				executeCommands();
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
+			
+		}
+		
+		public void executeCommands() throws IOException, InterruptedException {
+
+		    File tempScript = createTempScript();
+
+		    try
+		    {
+		        ProcessBuilder pb = new ProcessBuilder("bash", tempScript.toString());
+		        pb.inheritIO();
+		        Process process = pb.start();
+		        process.waitFor();
+		    } 
+		    finally 
+		    {
+		        tempScript.delete();
+		        System.out.println("Done Making Table");
+		    }
+		}
+
+		public File createTempScript() throws IOException 
+		{
+		    File tempScript = File.createTempFile("script", null);
+		    OutputStreamWriter streamWriter = new OutputStreamWriter(new FileOutputStream(tempScript));
+		    PrintWriter printWriter = new PrintWriter(streamWriter);
+		    printWriter.println("#!/bin/bash");
+		    printWriter.println("cd /usr/local/bin");
+		    printWriter.println(bedCommand);
+		    printWriter.close();
+		    return tempScript;
+		}
+		
 	}
 	
 	private class ImageRender implements Runnable
