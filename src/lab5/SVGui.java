@@ -16,6 +16,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -47,16 +49,12 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +66,6 @@ public class SVGui extends JFrame
 	private File[] imageFiles;
 	private List<ImageIcon> scaled;
 	private Thread myRender;
-	private JComboBox<String> colorCombo;
 	private static final long serialVersionUID = 1L;
 	private final String IGV = "IGV Displayer";
 	private final String CC = "Compute Coverage";
@@ -78,13 +75,16 @@ public class SVGui extends JFrame
 	private JTable imageTable;
 	private Map<Integer,List<Integer>> highlightCells;
 	private Color specifiedColor;
+	private JComboBox<String> colorCombo;
 	private File[] bamFiles;
 	private File bedFile;
 	private File covOut;
 	private String bedCommand;
 	private Thread bedThread;
- 
-
+	private JButton submit;
+	private JTextField bamLabel;
+	private JTextField bedLabel;
+	private JTextField outLabel;
 	
 	public SVGui(String title) 
 	{
@@ -102,7 +102,7 @@ public class SVGui extends JFrame
 	}
 	private JPanel toolsPanel() 
 	{
-		JPanel panel = new JPanel();
+		final JPanel panel = new JPanel(new CardLayout());
 		String[] toolList = {IGV, CC, CST};
 		JComboBox<String> toolCombo = new JComboBox<String>(toolList);
 		JLabel toolText = new JLabel("Tools:");
@@ -124,7 +124,7 @@ public class SVGui extends JFrame
 	
 	private JPanel igvDisplayPanel() 
 	{
-		final JPanel panel = new JPanel(new CardLayout());
+		final JPanel panel = new JPanel();
 		browser = new JButton("Browse");
 		panel.setLayout(new FlowLayout());
 		panel.add(new JLabel("Upload Images"));
@@ -379,12 +379,13 @@ public class SVGui extends JFrame
 	{
 		JPanel covPanel = new JPanel();
 		covPanel.setLayout(new BoxLayout(covPanel, BoxLayout.Y_AXIS));
-		JButton submit = new JButton("Submit");
+		submit = new JButton("Submit");
 		JPanel multiPanel = makeMultiPanel();
 		covPanel.add(multiPanel);
 		JPanel sPanel = new JPanel();
 		sPanel.add(submit);
 		covPanel.add(sPanel);
+		submit.setEnabled(false);
 		submit.addActionListener(new ActionListener()
 		{
 			@Override
@@ -412,9 +413,7 @@ public class SVGui extends JFrame
 		String[] choices = { "multicov", "igv"};
 		JComboBox<String> cb = new JComboBox<String>(choices);
 		JPanel multiPanel = new JPanel();
-		multiPanel.setLayout(new GridLayout(4,4));
-		multiPanel.add(lbl);
-		multiPanel.add(cb);
+		multiPanel.setLayout(new GridLayout(4,3));
 		JButton bamBrowse = new JButton("Browse");
 		bamBrowse.addActionListener(new ActionListener()
 		{
@@ -424,15 +423,19 @@ public class SVGui extends JFrame
 				try 
 				{
 					loadInBams();
-				} catch (IOException e1) 
+				} 
+				catch (IOException e1) 
 				{
 					e1.printStackTrace();
+				}
+				if (bamFiles != null && bedFile != null && covOut != null)
+				{
+					submit.setEnabled(true);
 				}
 			}
 		});
 		
-		multiPanel.add(new JLabel("Select Bam Files: "));
-		multiPanel.add(bamBrowse);
+
 		JButton bedBrowse = new JButton("Browse");
 		
 		bedBrowse.addActionListener(new ActionListener()
@@ -443,15 +446,20 @@ public class SVGui extends JFrame
 				try 
 				{
 					loadBed();
-				} catch (IOException e1) 
+				} 
+				catch (IOException e1) 
 				{
 					e1.printStackTrace();
+				}
+				
+				if (bamFiles != null && bedFile != null && covOut != null)
+				{
+					submit.setEnabled(true);
 				}
 			}
 		});
 		
-		multiPanel.add(new JLabel("Input Bed File:  "));
-		multiPanel.add(bedBrowse);
+	
 		JButton outFile = new JButton("Browse");
 		
 		outFile.addActionListener(new ActionListener()
@@ -462,14 +470,37 @@ public class SVGui extends JFrame
 				try 
 				{
 					chooseOutput();
-				} catch (IOException e1) 
+				} 
+				catch (IOException e1) 
 				{
 					e1.printStackTrace();
 				}
+				if (bamFiles != null && bedFile != null && covOut != null)
+				{
+					submit.setEnabled(true);
+				}
 			}
 		});
+		JLabel blankLabel = new JLabel();
+		bamLabel = new JTextField();
+		bedLabel = new JTextField();
+		outLabel = new JTextField();
+		
+		multiPanel.add(lbl);
+		multiPanel.add(cb);
+		multiPanel.add(blankLabel);
+		
+		multiPanel.add(new JLabel("Select Bam Files: "));
+		multiPanel.add(bamBrowse);
+		multiPanel.add(bamLabel);
+		
+		multiPanel.add(new JLabel("Input Bed File:  "));
+		multiPanel.add(bedBrowse);
+		multiPanel.add(bedLabel);
+		
 		multiPanel.add(new JLabel("Output File: "));
 		multiPanel.add(outFile);
+		multiPanel.add(outLabel);
 		return multiPanel;
 	}
 	private void loadInBams() throws IOException
@@ -486,7 +517,22 @@ public class SVGui extends JFrame
 			return;
 		}
 		File[] files = jfc.getSelectedFiles();
+		String fileText = getFileNames(files);
+		bamLabel.setText(fileText);
 		this.bamFiles = files;
+	}
+	
+	private String getFileNames(File[] names)
+	{
+		List<String> files = new ArrayList<String>();
+		for (File f : names)
+		{
+			String fName = f.getName();
+			files.add(fName);
+		}
+		
+		String myFiles = String.join(",", files);
+		return myFiles;
 	}
 	
 	private void loadBed() throws IOException
@@ -520,7 +566,11 @@ public class SVGui extends JFrame
 		{
 			File file = jfc.getSelectedFile();
 			this.bedFile = file;
+			String bedText = file.toString();
+			bedLabel.setText(bedText);
 		}
+		
+		
 
 	}
 	
@@ -550,6 +600,9 @@ public class SVGui extends JFrame
 		}
 		
 		this.covOut = chosenFile;
+		String text = chosenFile.toString();
+		outLabel.setText(text);
+		
 	}
 	
 	private String makeBedMultiCommand()
@@ -576,13 +629,13 @@ public class SVGui extends JFrame
 	private JPanel comparePanel() {
 		String[] colors = {"Pink", "Red", "Yellow", "Green"};
 		JPanel panel = new JPanel();
-		JButton browser = new JButton("Browse");
+		JButton theBrowser = new JButton("Browse");
 		JLabel colorLabel = new JLabel("Highlight Color");
 		
 		colorCombo = new JComboBox<String>(colors);
 		colorCombo.setSelectedIndex(-1);
 		panel.add(new JLabel("Input Table"));
-		panel.add(browser);
+		panel.add(theBrowser);
 		panel.setLayout(new FlowLayout());
 		colorCombo.addActionListener(new ActionListener() {
 
@@ -608,7 +661,7 @@ public class SVGui extends JFrame
 			}
 			
 		});
-		browser.addActionListener(new ActionListener() {
+		theBrowser.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try 
 				{
@@ -692,7 +745,6 @@ public class SVGui extends JFrame
 		for(int i = 0; i < table.getModel().getRowCount(); i++)
 		{
 			strains.put(i,table.getModel().getValueAt(i, 4).toString());
-			
 		}
 		for (Map.Entry<Integer, String> entry : strains.entrySet())
 		{
@@ -700,10 +752,7 @@ public class SVGui extends JFrame
 			List<Integer> specCols = new ArrayList<Integer>();
 			for (String s : sepStrains)
 			{
-	
-
 				specCols.add(table.getColumn(s).getModelIndex());
-				
 			}
 			highlightCells.putIfAbsent(entry.getKey(),specCols);
 		}
@@ -722,15 +771,6 @@ public class SVGui extends JFrame
 	{
 		new SVGui("SV Tools");
 	}
-	
-//	private class JComponentTableCellRenderer implements TableCellRenderer
-//	{
-//		  public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-//		      boolean hasFocus, int row, int column) 
-//		  {
-//		    return (Component) value;
-//		  }
-//	}
 	
 	private class HighlightCellRenderer extends DefaultTableCellRenderer 
 	{
@@ -760,10 +800,7 @@ public class SVGui extends JFrame
 			{
 				cell.setBackground(Color.WHITE);
 			}
-
-			
 		
-
 			return cell;
 			
 		}
@@ -800,7 +837,7 @@ public class SVGui extends JFrame
 		    finally 
 		    {
 		        tempScript.delete();
-		        System.out.println("Done Making Table");
+		        System.out.println("Done Making Table...");
 		    }
 		}
 
@@ -810,7 +847,6 @@ public class SVGui extends JFrame
 		    OutputStreamWriter streamWriter = new OutputStreamWriter(new FileOutputStream(tempScript));
 		    PrintWriter printWriter = new PrintWriter(streamWriter);
 		    printWriter.println("#!/bin/bash");
-		    printWriter.println("cd /usr/local/bin");
 		    printWriter.println(bedCommand);
 		    printWriter.close();
 		    return tempScript;
