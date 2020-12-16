@@ -15,10 +15,13 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.JToolBar;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.Border;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -67,6 +70,7 @@ public class SVGui extends JFrame
 	private List<ImageIcon> scaled;
 	private Thread myRender;
 	private static final long serialVersionUID = 1L;
+	private final String blank = "blank";
 	private final String IGV = "IGV Displayer";
 	private final String CC = "Compute Coverage";
 	private final String CST = "Color Sample Table";
@@ -86,17 +90,20 @@ public class SVGui extends JFrame
 	private JTextField bedLabel;
 	private JTextField outLabel;
 	
+	
 	public SVGui(String title) 
 	{
 		super(title);
 		setLocationRelativeTo(null);
-		setSize(500,300);
+		setSize(700,400);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		cards = new JPanel(new CardLayout());
+		cards.add(new JPanel(),blank);
 		cards.add(igvDisplayPanel(),IGV);
 		cards.add(compCovPanel(),CC);
 		cards.add(comparePanel(),CST);
-		getContentPane().add(toolsPanel(), BorderLayout.NORTH);
+//		getContentPane().add(toolsPanel(), BorderLayout.NORTH);
+		getContentPane().add(allTools(),BorderLayout.NORTH);
 		getContentPane().add(cards, BorderLayout.CENTER);
 		setVisible(true);
 	}
@@ -105,13 +112,14 @@ public class SVGui extends JFrame
 	 * TODO: 
 	 * - Make actually tool bar with maybe icons on tool options
 	 * - add some kind of like tool reset button/ warning message between switching tools?
-	 * - add some kind of info tab explaining what each tool does and how to use 
+	 * - add some kind of info/help tab explaining what each tool does and how to use 
 	 */
 	private JPanel toolsPanel() 
 	{
 		final JPanel panel = new JPanel(new CardLayout());
 		String[] toolList = {IGV, CC, CST};
 		JComboBox<String> toolCombo = new JComboBox<String>(toolList);
+		toolCombo.setSelectedIndex(-1);
 		JLabel toolText = new JLabel("Tools:");
 		ItemListener toolItemListener = new ItemListener() 
 		{
@@ -135,6 +143,66 @@ public class SVGui extends JFrame
 	 * - potentially make image rendering actually multithreaded not just in a background thread
 	 * - give progress bar of how close to completed with image rendering?
 	 */
+	private JToolBar allTools()
+	{
+		JToolBar toolBar = new JToolBar();
+		toolBar.setRollover(true);
+		toolBar.setLayout(new FlowLayout(FlowLayout.CENTER));
+		JButton igvButton = new JButton("IGV Displayer");
+		JButton bedButton = new JButton("Compute Coverage");
+		JButton compButton = new JButton("Color Sample Table");
+		
+		igvButton.addActionListener(new ActionListener() 
+		{
+
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				CardLayout cl = (CardLayout)(cards.getLayout());
+				cl.show(cards, IGV);	
+			}
+			
+		});
+		
+		bedButton.addActionListener(new ActionListener() 
+		{
+
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				CardLayout cl = (CardLayout)(cards.getLayout());
+				cl.show(cards, CC);
+			}
+			
+		});
+		
+		compButton.addActionListener(new ActionListener() 
+		{
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				CardLayout cl = (CardLayout)(cards.getLayout());
+				cl.show(cards, CST);
+				
+			}
+			
+		});
+		igvButton.setBackground(Color.PINK);
+		bedButton.setBackground(Color.CYAN);
+		compButton.setBackground(Color.YELLOW);
+		Border blackline = BorderFactory.createLineBorder(Color.black);
+//		bedButton.setBorder(blackline);
+//		igvButton.setBorder(blackline);
+//		compButton.setBorder(blackline);
+		toolBar.add(igvButton);
+		toolBar.add(bedButton);
+		toolBar.add(compButton);
+		
+		return toolBar;
+		
+	}
+
+	
 	private JPanel igvDisplayPanel() 
 	{
 		final JPanel panel = new JPanel();
@@ -653,7 +721,7 @@ public class SVGui extends JFrame
 	
 	/* TODO:
 	 * - add in file format checking
-	 * - add in other options for coloring? 
+	 * - add in other options for coloring like by sample phylogeny or something? 
 	 * - add rendering size of table to fit screen 
 	 * - add ability to save the table with highlighting ??? not sure if possible but would be nice
 	 */
@@ -793,7 +861,7 @@ public class SVGui extends JFrame
 		}
 	}
 	
-	public static void main(String[] args) 
+	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException 
 	{
 		new SVGui("SV Tools");
 	}
