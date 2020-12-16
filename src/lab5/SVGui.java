@@ -15,6 +15,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.JToolBar;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -67,6 +68,7 @@ public class SVGui extends JFrame
 	private List<ImageIcon> scaled;
 	private Thread myRender;
 	private static final long serialVersionUID = 1L;
+	private final String blank = "blank";
 	private final String IGV = "IGV Displayer";
 	private final String CC = "Compute Coverage";
 	private final String CST = "Color Sample Table";
@@ -86,6 +88,7 @@ public class SVGui extends JFrame
 	private JTextField bedLabel;
 	private JTextField outLabel;
 	
+	
 	public SVGui(String title) 
 	{
 		super(title);
@@ -93,10 +96,12 @@ public class SVGui extends JFrame
 		setSize(500,300);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		cards = new JPanel(new CardLayout());
+		cards.add(new JPanel(),blank);
 		cards.add(igvDisplayPanel(),IGV);
 		cards.add(compCovPanel(),CC);
 		cards.add(comparePanel(),CST);
-		getContentPane().add(toolsPanel(), BorderLayout.NORTH);
+//		getContentPane().add(toolsPanel(), BorderLayout.NORTH);
+		getContentPane().add(allTools(),BorderLayout.NORTH);
 		getContentPane().add(cards, BorderLayout.CENTER);
 		setVisible(true);
 	}
@@ -105,6 +110,7 @@ public class SVGui extends JFrame
 		final JPanel panel = new JPanel(new CardLayout());
 		String[] toolList = {IGV, CC, CST};
 		JComboBox<String> toolCombo = new JComboBox<String>(toolList);
+		toolCombo.setSelectedIndex(-1);
 		JLabel toolText = new JLabel("Tools:");
 		ItemListener toolItemListener = new ItemListener() 
 		{
@@ -121,6 +127,60 @@ public class SVGui extends JFrame
 		panel.add(toolCombo);
 		return panel;
 	}
+	
+	private JToolBar allTools()
+	{
+		JToolBar toolBar = new JToolBar();
+		toolBar.setRollover(true);
+		toolBar.setLayout(new FlowLayout(FlowLayout.CENTER));
+		JButton igvButton = new JButton("IGV Displayer");
+		JButton bedButton = new JButton("Compute Coverage");
+		JButton compButton = new JButton("Color Sample Table");
+		
+		igvButton.addActionListener(new ActionListener() 
+		{
+
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				CardLayout cl = (CardLayout)(cards.getLayout());
+				cl.show(cards, IGV);	
+			}
+			
+		});
+		
+		bedButton.addActionListener(new ActionListener() 
+		{
+
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				CardLayout cl = (CardLayout)(cards.getLayout());
+				cl.show(cards, CC);
+			}
+			
+		});
+		
+		compButton.addActionListener(new ActionListener() 
+		{
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				CardLayout cl = (CardLayout)(cards.getLayout());
+				cl.show(cards, CST);
+				
+			}
+			
+		});
+		toolBar.add(igvButton);
+		toolBar.add(bedButton);
+		toolBar.add(compButton);
+		
+		return toolBar;
+		
+	}
+
+	
 	
 	private JPanel igvDisplayPanel() 
 	{
