@@ -105,6 +105,13 @@ public class SVGui extends JFrame
 		getContentPane().add(cards, BorderLayout.CENTER);
 		setVisible(true);
 	}
+	
+	/* 
+	 * TODO: 
+	 * - Make actually tool bar with maybe icons on tool options
+	 * - add some kind of like tool reset button/ warning message between switching tools?
+	 * - add some kind of info tab explaining what each tool does and how to use 
+	 */
 	private JPanel toolsPanel() 
 	{
 		final JPanel panel = new JPanel(new CardLayout());
@@ -182,6 +189,12 @@ public class SVGui extends JFrame
 
 	
 	
+	/*
+	 * TODO:
+	 * - Make sure file formats are in proper format (image (.png, .jpeg, .svg), have chrom,start,stop in file name)
+	 * - potentially make image rendering actually multithreaded not just in a background thread
+	 * - give progress bar of how close to completed with image rendering?
+	 */
 	private JPanel igvDisplayPanel() 
 	{
 		final JPanel panel = new JPanel();
@@ -284,20 +297,23 @@ public class SVGui extends JFrame
 		JButton saveButton = new JButton("Save Checked Regions");
 		buttonPanel.add(saveButton,BorderLayout.WEST);
 		buttonPanel.setBackground(Color.cyan);
+		
 		AffineTransform affinetransform = new AffineTransform();     
 		FontRenderContext frc = new FontRenderContext(affinetransform,true,true);     
 		Font font = new Font("Courier", Font.BOLD,12);
-		int textwidth = (int)(font.getStringBounds("Strain Labels: ", frc).getWidth());
+		int textwidth = (int)(font.getStringBounds("Strain Labels:", frc).getWidth());
 		
-		double Wleft = width - imgSize;
+		double Wleft = (width - imgSize) * .92;
 		int wl = (int) Wleft; 
 		int left = wl - textwidth;
 		JPanel jPanel = new JPanel();
 		jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.X_AXIS));
-		JLabel label = new JLabel("Strain Labels: ");
+		JLabel label = new JLabel("Strain Labels:");
 		label.setFont(font);
 		jPanel.add(label);
 		jPanel.add(Box.createHorizontalStrut(left));
+//		Box.Filler hFill = new Box.Filler(new Dimension(5,0), new Dimension(left, 0), new Dimension(100, 0));
+//		jPanel.add(hFill);
 		jPanel.add(imageLabels);
 	    Border blackline = BorderFactory.createLineBorder(Color.black);
 	    jPanel.setBorder(blackline);
@@ -325,9 +341,11 @@ public class SVGui extends JFrame
 		headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
 		headerPanel.add(buttonPanel);
 		headerPanel.add(jPanel);
-		JPanel wholePanel = new JPanel();
-		wholePanel.add(imageTable);
-		JScrollPane scrollPane = new JScrollPane(wholePanel);
+//		JPanel wholePanel = new JPanel();
+//		wholePanel.add(imageTable);
+//		JScrollPane scrollPane = new JScrollPane(wholePanel);
+		headerPanel.add(imageTable);
+		JScrollPane scrollPane = new JScrollPane(headerPanel);
 		scrollPane.setColumnHeaderView(headerPanel);
 		cards.add(scrollPane, "Image");
 		CardLayout cl = (CardLayout)(cards.getLayout());
@@ -435,6 +453,17 @@ public class SVGui extends JFrame
 		g2.dispose();
 		return resizedImg;
 	}
+	/*
+	 * TODO:
+	 * - make bedtools command work on windows, and mac operating systems
+	 * - give error if bams or bed file malformed
+	 * - have user only be able to upload .bam files
+	 * - give some kind of progress of at least starting and stopping bedtools
+	 * - maybe add other bedtools commands and switch ability input different types of files depending on type of bedtool
+	 * - maybe add some type of bedtools help menu 
+	 * - potentially add some type of normalize coverage option by allowing checkbox of normalize and if so then can input 
+	 * a file of average coverage per bam file (would have to figure out how to determine which bam would go with what sample)
+	 */
 	private JPanel compCovPanel() 
 	{
 		JPanel covPanel = new JPanel();
@@ -617,7 +646,6 @@ public class SVGui extends JFrame
 
 			@Override
 			public String getDescription() {
-				// TODO Auto-generated method stub
 				return ".bed";
 			}
 		});
@@ -629,9 +657,6 @@ public class SVGui extends JFrame
 			String bedText = file.toString();
 			bedLabel.setText(bedText);
 		}
-		
-		
-
 	}
 	
 	private void chooseOutput() throws IOException
@@ -686,6 +711,12 @@ public class SVGui extends JFrame
 		
 	}
 	
+	/* TODO:
+	 * - add in file format checking
+	 * - add in other options for coloring? 
+	 * - add rendering size of table to fit screen 
+	 * - add ability to save the table with highlighting ??? not sure if possible but would be nice
+	 */
 	private JPanel comparePanel() {
 		String[] colors = {"Pink", "Red", "Yellow", "Green"};
 		JPanel panel = new JPanel();
@@ -726,14 +757,12 @@ public class SVGui extends JFrame
 				try 
 				{
 					selectTable();
-				} catch (IOException e1) 
+				} 
+				catch (IOException e1) 
 				{
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
-				
-
-				}
+			}
 		});
 		panel.add(colorLabel);
 		panel.add(colorCombo);
@@ -822,10 +851,7 @@ public class SVGui extends JFrame
 			TableColumn col = table.getColumnModel().getColumn(i);
 			col.setCellRenderer(cellHighlight);
 		}
-		
-//		table.setDefaultRenderer(Object.class,cellHighlight);
 	}
-	
 	
 	public static void main(String[] args) 
 	{
@@ -849,7 +875,6 @@ public class SVGui extends JFrame
 				{
 					rowToHighlight.add(entry.getKey());
 				}
-
 			}
 			
 			if (rowToHighlight.contains(row))
@@ -862,7 +887,6 @@ public class SVGui extends JFrame
 			}
 		
 			return cell;
-			
 		}
 	}
 	
