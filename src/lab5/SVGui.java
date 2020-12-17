@@ -20,6 +20,8 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.Border;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -93,7 +95,7 @@ public class SVGui extends JFrame
 	{
 		super(title);
 		setLocationRelativeTo(null);
-		setSize(500,300);
+		setSize(700,400);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		cards = new JPanel(new CardLayout());
 		cards.add(new JPanel(),blank);
@@ -110,7 +112,7 @@ public class SVGui extends JFrame
 	 * TODO: 
 	 * - Make actually tool bar with maybe icons on tool options
 	 * - add some kind of like tool reset button/ warning message between switching tools?
-	 * - add some kind of info tab explaining what each tool does and how to use 
+	 * - add some kind of info/help tab explaining what each tool does and how to use 
 	 */
 	private JPanel toolsPanel() 
 	{
@@ -135,6 +137,13 @@ public class SVGui extends JFrame
 		return panel;
 	}
 	
+
+	/*
+	 * TODO:
+	 * - Make sure file formats are in proper format (image (.png, .jpeg, .svg), have chrom,start,stop in file name)
+	 * - potentially make image rendering actually multithreaded not just in a background thread
+	 * - give progress bar of how close to completed with image rendering?
+	 */
 	private JToolBar allTools()
 	{
 		JToolBar toolBar = new JToolBar();
@@ -179,6 +188,13 @@ public class SVGui extends JFrame
 			}
 			
 		});
+		igvButton.setBackground(Color.PINK);
+		bedButton.setBackground(Color.CYAN);
+		compButton.setBackground(Color.YELLOW);
+		Border blackline = BorderFactory.createLineBorder(Color.black);
+//		bedButton.setBorder(blackline);
+//		igvButton.setBorder(blackline);
+//		compButton.setBorder(blackline);
 		toolBar.add(igvButton);
 		toolBar.add(bedButton);
 		toolBar.add(compButton);
@@ -195,6 +211,7 @@ public class SVGui extends JFrame
 	 * - potentially make image rendering actually multithreaded not just in a background thread
 	 * - give progress bar of how close to completed with image rendering?
 	 */
+
 	private JPanel igvDisplayPanel() 
 	{
 		final JPanel panel = new JPanel();
@@ -713,7 +730,7 @@ public class SVGui extends JFrame
 	
 	/* TODO:
 	 * - add in file format checking
-	 * - add in other options for coloring? 
+	 * - add in other options for coloring like by sample phylogeny or something? 
 	 * - add rendering size of table to fit screen 
 	 * - add ability to save the table with highlighting ??? not sure if possible but would be nice
 	 */
@@ -853,7 +870,7 @@ public class SVGui extends JFrame
 		}
 	}
 	
-	public static void main(String[] args) 
+	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException 
 	{
 		new SVGui("SV Tools");
 	}
