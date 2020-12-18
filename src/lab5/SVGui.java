@@ -815,28 +815,36 @@ public class SVGui extends JFrame
 		{
 			
 			File file = tableFile.getSelectedFile();
-			BufferedReader reader = new BufferedReader(new FileReader(file));
-			String header = reader.readLine();
-			String[] cols = header.split("\t");
-			DefaultTableModel model = new DefaultTableModel(cols,0);
-			
-			for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
+			if (file.getName().endsWith(".txt"))
 			{
-				model.addRow(nextLine.split("\t"));
+				BufferedReader reader = new BufferedReader(new FileReader(file));
+				String header = reader.readLine();
+				String[] cols = header.split("\t");
+				DefaultTableModel model = new DefaultTableModel(cols,0);
+				
+				for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
+				{
+					model.addRow(nextLine.split("\t"));
+				}
+				reader.close();
+				JTable table = new JTable();
+				table.setModel(model);
+				table.setPreferredSize(new Dimension(350,350));
+				table.setPreferredScrollableViewportSize(table.getPreferredSize());
+				table.setRowHeight(50);
+				highlightTable(table);
+				JPanel tablePanel = new JPanel();
+				tablePanel.setLayout(new GridLayout(1,0));
+				tablePanel.add(new JScrollPane(table));
+				cards.add(tablePanel, "Highlight Table");
+				CardLayout cl = (CardLayout)(cards.getLayout());
+				cl.show(cards, "Highlight Table");
 			}
-			reader.close();
-			JTable table = new JTable();
-			table.setModel(model);
-			table.setPreferredSize(new Dimension(350,350));
-			table.setPreferredScrollableViewportSize(table.getPreferredSize());
-			table.setRowHeight(50);
-			highlightTable(table);
-			JPanel tablePanel = new JPanel();
-			tablePanel.setLayout(new GridLayout(1,0));
-			tablePanel.add(new JScrollPane(table));
-			cards.add(tablePanel, "Highlight Table");
-			CardLayout cl = (CardLayout)(cards.getLayout());
-			cl.show(cards, "Highlight Table");
+			else
+			{
+				JOptionPane.showMessageDialog(this, "Incompatible file type.");
+			}
+			
 		}
 		else 
 		{
