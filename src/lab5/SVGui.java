@@ -13,9 +13,12 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
+import javax.swing.ProgressMonitor;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -89,6 +92,9 @@ public class SVGui extends JFrame
 	private JTextField bamLabel;
 	private JTextField bedLabel;
 	private JTextField outLabel;
+	private ProgressMonitor renderMonitor;
+	private JButton submitImages;
+	private JTextArea outputTextArea;
 	
 	
 	public SVGui(String title) 
@@ -144,11 +150,13 @@ public class SVGui extends JFrame
 	 * - potentially make image rendering actually multithreaded not just in a background thread
 	 * - give progress bar of how close to completed with image rendering?
 	 */
+	
+
 	private JToolBar allTools()
 	{
 		JToolBar toolBar = new JToolBar();
 		toolBar.setRollover(true);
-		toolBar.setLayout(new FlowLayout(FlowLayout.CENTER));
+		//toolBar.setLayout(new FlowLayout(FlowLayout.CENTER));
 		JButton igvButton = new JButton("IGV Displayer");
 		JButton bedButton = new JButton("Compute Coverage");
 		JButton compButton = new JButton("Color Sample Table");
@@ -188,21 +196,53 @@ public class SVGui extends JFrame
 			}
 			
 		});
-		igvButton.setBackground(Color.PINK);
+		igvButton.setBackground(Color.pink);
 		bedButton.setBackground(Color.CYAN);
 		compButton.setBackground(Color.YELLOW);
+		igvButton.setOpaque(true);
+		bedButton.setOpaque(true);
+		compButton.setOpaque(true);
+		igvButton.setBorderPainted(false);
+		bedButton.setBorderPainted(false);
+		compButton.setBorderPainted(false);
 		Border blackline = BorderFactory.createLineBorder(Color.black);
-//		bedButton.setBorder(blackline);
-//		igvButton.setBorder(blackline);
-//		compButton.setBorder(blackline);
+//	    igvButton.setBorder(blackline);
+//	    bedButton.setBorder(blackline);
+//	    compButton.setBorder(blackline);
 		toolBar.add(igvButton);
+		toolBar.addSeparator(new Dimension(5, 5));
 		toolBar.add(bedButton);
+		toolBar.addSeparator(new Dimension(5, 5));
 		toolBar.add(compButton);
+		toolBar.addSeparator();
+        JSeparator separator = new JSeparator();
+        separator.setOrientation(JSeparator.VERTICAL);
+        toolBar.add(separator);
+        toolBar.addSeparator();
+		JButton help = new JButton("Help");
+		toolBar.add(help);
 		
+		
+		help.addActionListener(new ActionListener() 
+		{
+			@Override
+			public void actionPerformed(ActionEvent ev)
+			{
+				String toolInfo = new String(
+						
+					"Help: " + "\n" + "\t" + 
+							"-IGV Display Tool: " + "add how to use tool here.. " + "\n" + "\t" +
+							"-Compute Coverage Tool " + "add how to use tool here.. " + "\n" + "\t" +
+							"-Highlight Table Tool " + "add how to use tool here.. " 
+				);
+				JOptionPane.showMessageDialog(toolBar, toolInfo);
+			}
+		});
 		return toolBar;
 		
 	}
 
+<<<<<<< HEAD
 	
 	
 	/*
@@ -212,16 +252,24 @@ public class SVGui extends JFrame
 	 * - give progress bar of how close to completed with image rendering?
 	 */
 
+=======
+	/*
+	 * TODO:
+	 * - Make sure file formats are in proper format (image (.png, .jpeg, .svg), have chrom,start,stop and slop in file name)
+	 * - potentially make image rendering actually multithreaded not just in a background thread
+	 */
+>>>>>>> branch 'master' of https://github.com/skharrison/progFinal.git
 	private JPanel igvDisplayPanel() 
 	{
 		final JPanel panel = new JPanel();
+		final JPanel all = new JPanel();
 		browser = new JButton("Browse");
-		panel.setLayout(new FlowLayout());
+		//panel.setLayout(new FlowLayout());
 		panel.add(new JLabel("Upload Images"));
-		panel.add(browser);
+		panel.add(browser, BorderLayout.CENTER);
 		JButton addLabel = new JButton("Add Strain Labels");
 		panel.setLayout(new FlowLayout());
-		panel.add(addLabel);
+		panel.add(addLabel, BorderLayout.CENTER);
 		browser.setEnabled(false);
 		browser.addActionListener(new ActionListener()
 		{
@@ -260,8 +308,36 @@ public class SVGui extends JFrame
 				}
 			}
 		});
+		all.setLayout(new BoxLayout(all, BoxLayout.Y_AXIS));
+		JPanel buttons = new JPanel();
+		submitImages = new JButton("View Images");
+		submitImages.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try 
+				{
+					renderMonitor = new ProgressMonitor(all, "Rendering Images","", 0, imageFiles.length);
+					ImageRender render = new ImageRender();
+					myRender = new Thread(render);
+					renderMonitor.setProgress(0);
+					myRender.start();
+				}
+				catch (Exception e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
 		
-		return panel;
+		submitImages.setEnabled(false);
+		buttons.add(submitImages);
+		all.add(panel);
+		all.add(buttons);
+		outputTextArea = new JTextArea("",5,20);
+		all.add(outputTextArea);
+		return all;
 	}
 	
 	private void loadFromFile() throws IOException
@@ -278,10 +354,12 @@ public class SVGui extends JFrame
 			return;
 		}
 		File[] files = jfc.getSelectedFiles();
-		this.imageFiles = files;
-		ImageRender render = new ImageRender();
-		myRender = new Thread(render);
-		myRender.start();
+		imageFiles = files;
+		if (imageFiles != null)
+		{
+			submitImages.setEnabled(true);
+		}
+		
 	}
 	
 	private void buildIGVTable() throws IOException
@@ -292,7 +370,7 @@ public class SVGui extends JFrame
 		int intSize = (int) imgSize;
 		double chromC = (width - imgSize) * .37;
 		int chromSize = (int) chromC;
-		double ss = (width - imgSize) * .23;
+		double ss = (width - imgSize) * .24;
 		int startSize = (int) ss;
 		double check = (width - imgSize) * .15;
 		int checkSize = (int) check;
@@ -320,20 +398,25 @@ public class SVGui extends JFrame
 		Font font = new Font("Courier", Font.BOLD,12);
 		int textwidth = (int)(font.getStringBounds("Strain Labels:", frc).getWidth());
 		
-		double Wleft = (width - imgSize) * .92;
+		double Wleft = (width - imgSize);
 		int wl = (int) Wleft; 
-		int left = wl - textwidth;
+		int l = (wl - textwidth);
+		float ll = (float) l;
+		float yep = ll * .90f;
+		int left = (int) yep;
+		
+		
 		JPanel jPanel = new JPanel();
 		jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.X_AXIS));
 		JLabel label = new JLabel("Strain Labels:");
 		label.setFont(font);
 		jPanel.add(label);
 		jPanel.add(Box.createHorizontalStrut(left));
-//		Box.Filler hFill = new Box.Filler(new Dimension(5,0), new Dimension(left, 0), new Dimension(100, 0));
+//		Box.Filler hFill = new Box.Filler(new Dimension(5,0), new Dimension(wl, 0), new Dimension(100, 0));
 //		jPanel.add(hFill);
 		jPanel.add(imageLabels);
 	    Border blackline = BorderFactory.createLineBorder(Color.black);
-	    jPanel.setBorder(blackline);
+	    //jPanel.setBorder(blackline);
 	    buttonPanel.setBorder(blackline);
 		imageTable = new JTable(model);
 		imageTable.setRowHeight(250);
@@ -358,11 +441,11 @@ public class SVGui extends JFrame
 		headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
 		headerPanel.add(buttonPanel);
 		headerPanel.add(jPanel);
-//		JPanel wholePanel = new JPanel();
-//		wholePanel.add(imageTable);
-//		JScrollPane scrollPane = new JScrollPane(wholePanel);
-		headerPanel.add(imageTable);
-		JScrollPane scrollPane = new JScrollPane(headerPanel);
+		JPanel wholePanel = new JPanel();
+		wholePanel.add(imageTable);
+		JScrollPane scrollPane = new JScrollPane(wholePanel);
+		//headerPanel.add(imageTable);
+		//JScrollPane scrollPane = new JScrollPane(wholePanel);
 		scrollPane.setColumnHeaderView(headerPanel);
 		cards.add(scrollPane, "Image");
 		CardLayout cl = (CardLayout)(cards.getLayout());
@@ -378,7 +461,7 @@ public class SVGui extends JFrame
 		int numSamples = allLabels.length;
 		AffineTransform affinetransform = new AffineTransform();     
 		FontRenderContext frc = new FontRenderContext(affinetransform,true,true);     
-		Font font = new Font("Courier", Font.BOLD,12);
+		Font font = new Font("Courier",Font.BOLD,12);
 		int textwidth = (int)(font.getStringBounds(joinString, frc).getWidth());
 		int space = (int)(font.getStringBounds(" ", frc).getWidth());
 		int allowableSp = (width - textwidth) / space;
@@ -973,12 +1056,25 @@ public class SVGui extends JFrame
 			try
 			{
 				final List<ImageIcon> list = new ArrayList<ImageIcon>();
+				int i = 0;
 				for (File f : imageFiles)
 				{
+					final int progress=i;
 					Image img = ImageIO.read(f);
 					Image scale = getScaledImage(img, imgWidth,250);
 					ImageIcon imgI = new ImageIcon(scale);
 					list.add(imgI);
+					SwingUtilities.invokeLater(new Runnable()
+					{
+						@Override
+						public void run()
+						{
+							renderMonitor.setProgress(progress);
+			                  outputTextArea.setText(outputTextArea.getText() 
+			                     + String.format("Completed %d%% of task.\n", progress));
+						}
+					});
+					i++;
 					
 				}
 				
