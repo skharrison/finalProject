@@ -842,7 +842,7 @@ public class SVGui extends JFrame
 			}
 			else
 			{
-				JOptionPane.showMessageDialog(this, "Incompatible file type.");
+				JOptionPane.showMessageDialog(this, "Incompatible file type. Please upload a .txt file.");
 			}
 			
 		}
