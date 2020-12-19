@@ -613,6 +613,27 @@ public class SVGui extends JFrame
 	{
 		
 		JFileChooser jfc = new JFileChooser();
+		jfc.setFileFilter(new FileFilter() 
+		{
+			
+
+			@Override
+			public boolean accept(File f) {
+				if(f.isDirectory()) 
+				{
+					return true;
+				}
+				else 
+				{
+					return f.getName().toLowerCase().endsWith(".bam");
+				}
+			}
+
+			@Override
+			public String getDescription() {
+				return ".bam";
+			}
+		});
 		jfc.setMultiSelectionEnabled(true);
 	
 		if (jfc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
