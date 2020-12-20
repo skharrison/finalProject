@@ -962,6 +962,7 @@ public class SVGui extends JFrame
 			isTable = true;
 			CardLayout cl = (CardLayout)(cards.getLayout());
 			cl.show(cards, "Highlight Table");
+			current = "Highlight Table";
 		}
 		else 
 		{
@@ -1022,6 +1023,7 @@ public class SVGui extends JFrame
 	
 	private void resetTools()
 	{
+		CardLayout cl = (CardLayout)(cards.getLayout());
 		bamLabel.setText("");
 		bedLabel.setText("");
 		outLabel.setText("");
@@ -1033,6 +1035,12 @@ public class SVGui extends JFrame
 		saidNo = false;
 		scaled = null;
 		imageLabels = null;
+		if (current == "Highlight Table")
+		{
+			cl.show(cards, CST);
+			current = CST;
+
+		}
 		
 	}
 	
