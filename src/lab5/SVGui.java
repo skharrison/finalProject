@@ -12,10 +12,14 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
+import javax.swing.ProgressMonitor;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -90,7 +94,11 @@ public class SVGui extends JFrame
 	private JTextField bamLabel;
 	private JTextField bedLabel;
 	private JTextField outLabel;
-	
+	private ProgressMonitor renderMonitor;
+	private JButton submitImages;
+	private JTextArea renderText;
+	private JProgressBar bedToolProgress;
+	private JLabel bedToolOutText;
 	
 	public SVGui(String title) 
 	{
@@ -111,45 +119,16 @@ public class SVGui extends JFrame
 	
 	/* 
 	 * TODO: 
-	 * - Make actually tool bar with maybe icons on tool options
-	 * - add some kind of like tool reset button/ warning message between switching tools?
-	 * - add some kind of info/help tab explaining what each tool does and how to use 
+	 * - add some kind of like tool reset button for tools
+	 * - only put warning message if tool has been used
+	 * - actually add help message and link to github for further info
 	 */
-	private JPanel toolsPanel() 
-	{
-		final JPanel panel = new JPanel(new CardLayout());
-		String[] toolList = {IGV, CC, CST};
-		JComboBox<String> toolCombo = new JComboBox<String>(toolList);
-		toolCombo.setSelectedIndex(-1);
-		JLabel toolText = new JLabel("Tools:");
-		ItemListener toolItemListener = new ItemListener() 
-		{
-			public void itemStateChanged(ItemEvent evt) 
-			{
-			    CardLayout cl = (CardLayout)(cards.getLayout());
-			    cl.show(cards, (String)evt.getItem());
-			}
-		};
-		toolCombo.setEditable(false);
-		toolCombo.addItemListener(toolItemListener);
-		panel.setLayout(new FlowLayout());
-		panel.add(toolText);
-		panel.add(toolCombo);
-		return panel;
-	}
 	
-
-	/*
-	 * TODO:
-	 * - Make sure file formats are in proper format (image (.png, .jpeg, .svg), have chrom,start,stop in file name)
-	 * - potentially make image rendering actually multithreaded not just in a background thread
-	 * - give progress bar of how close to completed with image rendering?
-	 */
 	private JToolBar allTools()
 	{
 		JToolBar toolBar = new JToolBar();
 		toolBar.setRollover(true);
-		toolBar.setLayout(new FlowLayout(FlowLayout.CENTER));
+		//toolBar.setLayout(new FlowLayout(FlowLayout.CENTER));
 		JButton igvButton = new JButton("IGV Displayer");
 		JButton bedButton = new JButton("Compute Coverage");
 		JButton compButton = new JButton("Color Sample Table");
@@ -168,7 +147,6 @@ public class SVGui extends JFrame
 		
 		bedButton.addActionListener(new ActionListener() 
 		{
-
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
@@ -180,48 +158,67 @@ public class SVGui extends JFrame
 		
 		compButton.addActionListener(new ActionListener() 
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent e) {
+			public void actionPerformed(ActionEvent e)
+			{
 				switchTools(CST);
 				current = CST;
 			}
 			
 		});
-		igvButton.setBackground(Color.PINK);
+		igvButton.setBackground(Color.pink);
 		bedButton.setBackground(Color.CYAN);
 		compButton.setBackground(Color.YELLOW);
-		Border blackline = BorderFactory.createLineBorder(Color.black);
-//		bedButton.setBorder(blackline);
-//		igvButton.setBorder(blackline);
-//		compButton.setBorder(blackline);
+		igvButton.setOpaque(true);
+		bedButton.setOpaque(true);
+		compButton.setOpaque(true);
+		igvButton.setBorderPainted(false);
+		bedButton.setBorderPainted(false);
+		compButton.setBorderPainted(false);
 		toolBar.add(igvButton);
+		toolBar.addSeparator(new Dimension(5, 5));
 		toolBar.add(bedButton);
+		toolBar.addSeparator(new Dimension(5, 5));
 		toolBar.add(compButton);
-		
-		return toolBar;
-		
+		toolBar.addSeparator();
+        JSeparator separator = new JSeparator();
+        separator.setOrientation(JSeparator.VERTICAL);
+        toolBar.add(separator);
+        toolBar.addSeparator();
+		JButton help = new JButton("Help");
+		toolBar.add(help);
+		help.addActionListener(new ActionListener() 
+		{
+			@Override
+			public void actionPerformed(ActionEvent ev)
+			{
+				String toolInfo = new String(
+						
+					"Help: " + "\n" + "\t" + 
+							"-IGV Display Tool: " + "add how to use tool here.. " + "\n" + "\t" +
+							"-Compute Coverage Tool " + "add how to use tool here.. " + "\n" + "\t" +
+							"-Highlight Table Tool " + "add how to use tool here.. " 
+				);
+				JOptionPane.showMessageDialog(toolBar, toolInfo);
+			}
+		});
+		return toolBar;	
 	}
-
-	
-	
 	/*
 	 * TODO:
-	 * - Make sure file formats are in proper format (image (.png, .jpeg, .svg), have chrom,start,stop in file name)
 	 * - potentially make image rendering actually multithreaded not just in a background thread
-	 * - give progress bar of how close to completed with image rendering?
 	 */
-
 	private JPanel igvDisplayPanel() 
 	{
 		final JPanel panel = new JPanel();
+		final JPanel all = new JPanel();
 		browser = new JButton("Browse");
-		panel.setLayout(new FlowLayout());
+		//panel.setLayout(new FlowLayout());
 		panel.add(new JLabel("Upload Images"));
-		panel.add(browser);
+		panel.add(browser, BorderLayout.CENTER);
 		JButton addLabel = new JButton("Add Strain Labels");
 		panel.setLayout(new FlowLayout());
-		panel.add(addLabel);
+		panel.add(addLabel, BorderLayout.CENTER);
 		browser.setEnabled(false);
 		browser.addActionListener(new ActionListener()
 		{
@@ -260,28 +257,56 @@ public class SVGui extends JFrame
 				}
 			}
 		});
-		
-		return panel;
+		all.setLayout(new BoxLayout(all, BoxLayout.Y_AXIS));
+		JPanel buttons = new JPanel();
+		submitImages = new JButton("View Images");
+		submitImages.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try 
+				{
+					renderMonitor = new ProgressMonitor(all, "Rendering Images","", 0, imageFiles.length);
+					ImageRender render = new ImageRender();
+					myRender = new Thread(render);
+					renderMonitor.setProgress(0);
+					myRender.start();
+				}
+				catch (Exception e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		submitImages.setEnabled(false);
+		buttons.add(submitImages);
+		all.add(panel);
+		all.add(buttons);
+		renderText = new JTextArea("",5,20);
+		all.add(renderText);
+		return all;
 	}
-	
 	private void loadFromFile() throws IOException
 	{
-		
 		JFileChooser jfc = new JFileChooser();
+		jfc.setAcceptAllFileFilterUsed(false);
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("jpg", "png", "svg"); 
+		jfc.addChoosableFileFilter(filter); 
 		jfc.setMultiSelectionEnabled(true);
 	
 		if (jfc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
 			return;
-		
 		if( jfc.getSelectedFile() == null)
 		{
 			return;
 		}
 		File[] files = jfc.getSelectedFiles();
-		this.imageFiles = files;
-		ImageRender render = new ImageRender();
-		myRender = new Thread(render);
-		myRender.start();
+		imageFiles = files;
+		if (imageFiles != null)
+		{
+			submitImages.setEnabled(true);
+		}	
 	}
 	
 	private void buildIGVTable() throws IOException
@@ -292,7 +317,7 @@ public class SVGui extends JFrame
 		int intSize = (int) imgSize;
 		double chromC = (width - imgSize) * .37;
 		int chromSize = (int) chromC;
-		double ss = (width - imgSize) * .23;
+		double ss = (width - imgSize) * .24;
 		int startSize = (int) ss;
 		double check = (width - imgSize) * .15;
 		int checkSize = (int) check;
@@ -309,31 +334,30 @@ public class SVGui extends JFrame
 			model.addRow(new Object[] {chrom,start,stop,false,imgBed});
 			index++;
 		}
-		
 		JPanel buttonPanel = new JPanel();
 		JButton saveButton = new JButton("Save Checked Regions");
 		buttonPanel.add(saveButton,BorderLayout.WEST);
 		buttonPanel.setBackground(Color.cyan);
-		
 		AffineTransform affinetransform = new AffineTransform();     
 		FontRenderContext frc = new FontRenderContext(affinetransform,true,true);     
 		Font font = new Font("Courier", Font.BOLD,12);
 		int textwidth = (int)(font.getStringBounds("Strain Labels:", frc).getWidth());
-		
-		double Wleft = (width - imgSize) * .92;
+		double Wleft = (width - imgSize);
 		int wl = (int) Wleft; 
-		int left = wl - textwidth;
+		int l = (wl - textwidth);
+		float ll = (float) l;
+		float yep = ll * .90f;
+		int left = (int) yep;
 		JPanel jPanel = new JPanel();
 		jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.X_AXIS));
 		JLabel label = new JLabel("Strain Labels:");
 		label.setFont(font);
 		jPanel.add(label);
 		jPanel.add(Box.createHorizontalStrut(left));
-//		Box.Filler hFill = new Box.Filler(new Dimension(5,0), new Dimension(left, 0), new Dimension(100, 0));
+//		Box.Filler hFill = new Box.Filler(new Dimension(5,0), new Dimension(wl, 0), new Dimension(100, 0));
 //		jPanel.add(hFill);
 		jPanel.add(imageLabels);
 	    Border blackline = BorderFactory.createLineBorder(Color.black);
-	    jPanel.setBorder(blackline);
 	    buttonPanel.setBorder(blackline);
 		imageTable = new JTable(model);
 		imageTable.setRowHeight(250);
@@ -352,17 +376,13 @@ public class SVGui extends JFrame
 				getCheckedData(imageTable);
 			}
 		});
-	
-		
 		JPanel headerPanel = new JPanel();
 		headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
 		headerPanel.add(buttonPanel);
 		headerPanel.add(jPanel);
-//		JPanel wholePanel = new JPanel();
-//		wholePanel.add(imageTable);
-//		JScrollPane scrollPane = new JScrollPane(wholePanel);
-		headerPanel.add(imageTable);
-		JScrollPane scrollPane = new JScrollPane(headerPanel);
+		JPanel wholePanel = new JPanel();
+		wholePanel.add(imageTable);
+		JScrollPane scrollPane = new JScrollPane(wholePanel);
 		scrollPane.setColumnHeaderView(headerPanel);
 		cards.add(scrollPane, "Image");
 		CardLayout cl = (CardLayout)(cards.getLayout());
@@ -370,7 +390,7 @@ public class SVGui extends JFrame
 		this.setSize(screenSize);
 		
 	}
-	
+	//TODO: make labels not look shifted over
 	private void makeSampleLabel(String labels, int width)
 	{
 		String[] allLabels = labels.split(",");
@@ -378,7 +398,7 @@ public class SVGui extends JFrame
 		int numSamples = allLabels.length;
 		AffineTransform affinetransform = new AffineTransform();     
 		FontRenderContext frc = new FontRenderContext(affinetransform,true,true);     
-		Font font = new Font("Courier", Font.BOLD,12);
+		Font font = new Font("Courier",Font.BOLD,12);
 		int textwidth = (int)(font.getStringBounds(joinString, frc).getWidth());
 		int space = (int)(font.getStringBounds(" ", frc).getWidth());
 		int allowableSp = (width - textwidth) / space;
@@ -474,10 +494,7 @@ public class SVGui extends JFrame
 	 * TODO:
 	 * - make bedtools command work on windows, and mac operating systems
 	 * - give error if bams or bed file malformed
-	 * - have user only be able to upload .bam files
-	 * - give some kind of progress of at least starting and stopping bedtools
 	 * - maybe add other bedtools commands and switch ability input different types of files depending on type of bedtool
-	 * - maybe add some type of bedtools help menu 
 	 * - potentially add some type of normalize coverage option by allowing checkbox of normalize and if so then can input 
 	 * a file of average coverage per bam file (would have to figure out how to determine which bam would go with what sample)
 	 */
@@ -490,7 +507,16 @@ public class SVGui extends JFrame
 		covPanel.add(multiPanel);
 		JPanel sPanel = new JPanel();
 		sPanel.add(submit);
+		bedToolProgress = new JProgressBar(0,100);
+		bedToolProgress.setStringPainted(true); 
+		bedToolProgress.setString("Processing...");      
+		bedToolProgress.setVisible(false);
 		covPanel.add(sPanel);
+		bedToolOutText = new JLabel();
+		covPanel.add(bedToolProgress);
+		covPanel.add(Box.createVerticalStrut(20));
+		covPanel.add(bedToolOutText);
+		covPanel.add(Box.createVerticalStrut(20));
 		submit.setEnabled(false);
 		submit.addActionListener(new ActionListener()
 		{
@@ -499,6 +525,9 @@ public class SVGui extends JFrame
 			{
 				try 
 				{
+					submit.setEnabled(false);
+					bedToolProgress.setVisible(true);
+					bedToolProgress.setIndeterminate(true);
 					bedCommand = makeBedMultiCommand();
 					CommandRunner myCommand = new CommandRunner();
 					bedThread = new Thread(myCommand);
@@ -510,6 +539,7 @@ public class SVGui extends JFrame
 				}
 			}
 		});
+		
 		return covPanel;
 	}
 	
@@ -607,11 +637,11 @@ public class SVGui extends JFrame
 		multiPanel.add(new JLabel("Output File: "));
 		multiPanel.add(outFile);
 		multiPanel.add(outLabel);
+		
 		return multiPanel;
 	}
 	private void loadInBams() throws IOException
 	{
-		
 		JFileChooser jfc = new JFileChooser();
 		jfc.setFileFilter(new FileFilter() 
 		{
@@ -643,10 +673,15 @@ public class SVGui extends JFrame
 		{
 			return;
 		}
+		
+		
 		File[] files = jfc.getSelectedFiles();
-		String fileText = getFileNames(files);
-		bamLabel.setText(fileText);
-		this.bamFiles = files;
+		if (files.length != 0  && files != null)
+		{
+			String fileText = getFileNames(files);
+			bamLabel.setText(fileText);
+			this.bamFiles = files;
+		}
 	}
 	
 	private String getFileNames(File[] names)
@@ -751,7 +786,6 @@ public class SVGui extends JFrame
 	
 	/* TODO:
 	 * - add in file format checking
-	 * - add in other options for coloring like by sample phylogeny or something? 
 	 * - add rendering size of table to fit screen 
 	 * - add ability to save the table with highlighting ??? not sure if possible but would be nice
 	 */
@@ -836,36 +870,28 @@ public class SVGui extends JFrame
 		{
 			
 			File file = tableFile.getSelectedFile();
-			if (file.getName().endsWith(".txt"))
-			{
-				BufferedReader reader = new BufferedReader(new FileReader(file));
-				String header = reader.readLine();
-				String[] cols = header.split("\t");
-				DefaultTableModel model = new DefaultTableModel(cols,0);
-				
-				for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
-				{
-					model.addRow(nextLine.split("\t"));
-				}
-				reader.close();
-				JTable table = new JTable();
-				table.setModel(model);
-				table.setPreferredSize(new Dimension(350,350));
-				table.setPreferredScrollableViewportSize(table.getPreferredSize());
-				table.setRowHeight(50);
-				highlightTable(table);
-				JPanel tablePanel = new JPanel();
-				tablePanel.setLayout(new GridLayout(1,0));
-				tablePanel.add(new JScrollPane(table));
-				cards.add(tablePanel, "Highlight Table");
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, "Highlight Table");
-			}
-			else
-			{
-				JOptionPane.showMessageDialog(this, "Incompatible file type. Please upload a .txt file.");
-			}
+			BufferedReader reader = new BufferedReader(new FileReader(file));
+			String header = reader.readLine();
+			String[] cols = header.split("\t");
+			DefaultTableModel model = new DefaultTableModel(cols,0);
 			
+			for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
+			{
+				model.addRow(nextLine.split("\t"));
+			}
+			reader.close();
+			JTable table = new JTable();
+			table.setModel(model);
+			table.setPreferredSize(new Dimension(350,350));
+			table.setPreferredScrollableViewportSize(table.getPreferredSize());
+			table.setRowHeight(50);
+			highlightTable(table);
+			JPanel tablePanel = new JPanel();
+			tablePanel.setLayout(new GridLayout(1,0));
+			tablePanel.add(new JScrollPane(table));
+			cards.add(tablePanel, "Highlight Table");
+			CardLayout cl = (CardLayout)(cards.getLayout());
+			cl.show(cards, "Highlight Table");
 		}
 		else 
 		{
@@ -916,7 +942,6 @@ public class SVGui extends JFrame
 		{
 			cl.show(cards, card);
 		}
-		
 	}
 	
 	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException 
@@ -980,14 +1005,26 @@ public class SVGui extends JFrame
 		    try
 		    {
 		        ProcessBuilder pb = new ProcessBuilder("bash", tempScript.toString());
-		        pb.inheritIO();
+//		    	Runtime run = Runtime.getRuntime();
+//		    	Process pb = run.exec(bedCommand);
+		        //pb.inheritIO();
 		        Process process = pb.start();
 		        process.waitFor();
 		    } 
 		    finally 
 		    {
-		        tempScript.delete();
-		        System.out.println("Done Making Table...");
+		        //tempScript.delete();
+		        SwingUtilities.invokeLater(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						bedToolProgress.setString("Done!");
+						bedToolProgress.setIndeterminate(false);
+						bedToolOutText.setText("Coverage file saved to: " + covOut);
+						submit.setEnabled(true);
+					}
+				});
 		    }
 		}
 
@@ -1022,12 +1059,25 @@ public class SVGui extends JFrame
 			try
 			{
 				final List<ImageIcon> list = new ArrayList<ImageIcon>();
+				int i = 0;
 				for (File f : imageFiles)
 				{
+					final int progress=i;
 					Image img = ImageIO.read(f);
 					Image scale = getScaledImage(img, imgWidth,250);
 					ImageIcon imgI = new ImageIcon(scale);
 					list.add(imgI);
+					SwingUtilities.invokeLater(new Runnable()
+					{
+						@Override
+						public void run()
+						{
+							renderMonitor.setProgress(progress);
+			                  renderText.setText(renderText.getText() 
+			                     + String.format("Completed %d%% of task.\n", progress));
+						}
+					});
+					i++;
 					
 				}
 				
