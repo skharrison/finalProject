@@ -78,6 +78,7 @@ public class SVGui extends JFrame
 	private final String IGV = "IGV Displayer";
 	private final String CC = "Compute Coverage";
 	private final String CST = "Color Sample Table";
+	private String current = blank;
 	private JLabel imageLabels;
 	private JButton browser;
 	private JTable imageTable;
@@ -118,9 +119,11 @@ public class SVGui extends JFrame
 	
 	/* 
 	 * TODO: 
-	 * - add some kind of like tool reset button/ warning message between switching tools?
-	 * - add some kind of info/help tab explaining what each tool does and how to use 
+	 * - add some kind of like tool reset button for tools
+	 * - only put warning message if tool has been used
+	 * - actually add help message and link to github for further info
 	 */
+	
 	private JToolBar allTools()
 	{
 		JToolBar toolBar = new JToolBar();
@@ -136,32 +139,30 @@ public class SVGui extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, IGV);	
+				switchTools(IGV);
+				current = IGV;
 			}
 			
 		});
 		
 		bedButton.addActionListener(new ActionListener() 
 		{
-
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, CC);
+				switchTools(CC);
+				current = CC;
 			}
 			
 		});
 		
 		compButton.addActionListener(new ActionListener() 
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent e) {
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, CST);
-				
+			public void actionPerformed(ActionEvent e)
+			{
+				switchTools(CST);
+				current = CST;
 			}
 			
 		});
@@ -174,10 +175,6 @@ public class SVGui extends JFrame
 		igvButton.setBorderPainted(false);
 		bedButton.setBorderPainted(false);
 		compButton.setBorderPainted(false);
-		//Border blackline = BorderFactory.createLineBorder(Color.black);
-//	    igvButton.setBorder(blackline);
-//	    bedButton.setBorder(blackline);
-//	    compButton.setBorder(blackline);
 		toolBar.add(igvButton);
 		toolBar.addSeparator(new Dimension(5, 5));
 		toolBar.add(bedButton);
@@ -190,8 +187,6 @@ public class SVGui extends JFrame
         toolBar.addSeparator();
 		JButton help = new JButton("Help");
 		toolBar.add(help);
-		
-		
 		help.addActionListener(new ActionListener() 
 		{
 			@Override
@@ -211,9 +206,7 @@ public class SVGui extends JFrame
 	}
 	/*
 	 * TODO:
-	 * - Make sure file formats are in proper format (image (.png, .jpeg, .svg), have chrom,start,stop in file name)
 	 * - potentially make image rendering actually multithreaded not just in a background thread
-	 * - give progress bar of how close to completed with image rendering?
 	 */
 	private JPanel igvDisplayPanel() 
 	{
@@ -365,7 +358,6 @@ public class SVGui extends JFrame
 //		jPanel.add(hFill);
 		jPanel.add(imageLabels);
 	    Border blackline = BorderFactory.createLineBorder(Color.black);
-	    //jPanel.setBorder(blackline);
 	    buttonPanel.setBorder(blackline);
 		imageTable = new JTable(model);
 		imageTable.setRowHeight(250);
@@ -391,8 +383,6 @@ public class SVGui extends JFrame
 		JPanel wholePanel = new JPanel();
 		wholePanel.add(imageTable);
 		JScrollPane scrollPane = new JScrollPane(wholePanel);
-		//headerPanel.add(imageTable);
-		//JScrollPane scrollPane = new JScrollPane(wholePanel);
 		scrollPane.setColumnHeaderView(headerPanel);
 		cards.add(scrollPane, "Image");
 		CardLayout cl = (CardLayout)(cards.getLayout());
@@ -400,7 +390,7 @@ public class SVGui extends JFrame
 		this.setSize(screenSize);
 		
 	}
-	
+	//TODO: make labels not look shifted over
 	private void makeSampleLabel(String labels, int width)
 	{
 		String[] allLabels = labels.split(",");
@@ -504,10 +494,7 @@ public class SVGui extends JFrame
 	 * TODO:
 	 * - make bedtools command work on windows, and mac operating systems
 	 * - give error if bams or bed file malformed
-	 * - have user only be able to upload .bam files
-	 * - give some kind of progress of at least starting and stopping bedtools
 	 * - maybe add other bedtools commands and switch ability input different types of files depending on type of bedtool
-	 * - maybe add some type of bedtools help menu 
 	 * - potentially add some type of normalize coverage option by allowing checkbox of normalize and if so then can input 
 	 * a file of average coverage per bam file (would have to figure out how to determine which bam would go with what sample)
 	 */
@@ -518,16 +505,13 @@ public class SVGui extends JFrame
 		submit = new JButton("Submit");
 		JPanel multiPanel = makeMultiPanel();
 		covPanel.add(multiPanel);
-		//covPanel.add(Box.createVerticalGlue());
 		JPanel sPanel = new JPanel();
 		sPanel.add(submit);
-		//final Dimension jW = progressP.getSize();
 		bedToolProgress = new JProgressBar(0,100);
-		bedToolProgress.setStringPainted(true); //get space for the string
+		bedToolProgress.setStringPainted(true); 
 		bedToolProgress.setString("Processing...");      
 		bedToolProgress.setVisible(false);
 		covPanel.add(sPanel);
-		//covPanel.add(Box.createVerticalGlue());
 		bedToolOutText = new JLabel();
 		covPanel.add(bedToolProgress);
 		covPanel.add(Box.createVerticalStrut(20));
@@ -542,8 +526,6 @@ public class SVGui extends JFrame
 				try 
 				{
 					submit.setEnabled(false);
-					//bedToolProgress.setPreferredSize(jW);
-					//bedToolProgress.
 					bedToolProgress.setVisible(true);
 					bedToolProgress.setIndeterminate(true);
 					bedCommand = makeBedMultiCommand();
@@ -656,38 +638,36 @@ public class SVGui extends JFrame
 		multiPanel.add(outFile);
 		multiPanel.add(outLabel);
 		
-	
 		return multiPanel;
 	}
 	private void loadInBams() throws IOException
 	{
-//		JFileChooser jfc = new JFileChooser();
-//		jfc.setMultiSelectionEnabled(true);
-//		jfc.setAcceptAllFileFilterUsed(false);
-//		FileNameExtensionFilter filter = new FileNameExtensionFilter(".bam");
-//		jfc.addChoosableFileFilter(filter); 
-//		if (jfc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
-//			return;
-//		
-//		if( jfc.getSelectedFile() == null)
-//		{
-//			return;
-//		}
-//		File[] files = jfc.getSelectedFiles();
-//		String fileText = getFileNames(files);
-//		bamLabel.setText(fileText);
-//		bamFiles = files;
-		
 		JFileChooser jfc = new JFileChooser();
-//		jfc.setAcceptAllFileFilterUsed(false);
-//		FileNameExtensionFilter fil = new FileNameExtensionFilter(".bam"); 
-//		jfc.addChoosableFileFilter(fil);
+		jfc.setFileFilter(new FileFilter() 
+		{
+			
+
+			@Override
+			public boolean accept(File f) {
+				if(f.isDirectory()) 
+				{
+					return true;
+				}
+				else 
+				{
+					return f.getName().toLowerCase().endsWith(".bam");
+				}
+			}
+
+			@Override
+			public String getDescription() {
+				return ".bam";
+			}
+		});
 		jfc.setMultiSelectionEnabled(true);
 	
 		if (jfc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
-		{
 			return;
-		}
 		
 		if( jfc.getSelectedFile() == null)
 		{
@@ -806,7 +786,6 @@ public class SVGui extends JFrame
 	
 	/* TODO:
 	 * - add in file format checking
-	 * - add in other options for coloring like by sample phylogeny or something? 
 	 * - add rendering size of table to fit screen 
 	 * - add ability to save the table with highlighting ??? not sure if possible but would be nice
 	 */
@@ -943,6 +922,25 @@ public class SVGui extends JFrame
 		{
 			TableColumn col = table.getColumnModel().getColumn(i);
 			col.setCellRenderer(cellHighlight);
+		}
+	}
+	
+	private void switchTools(String card)
+	{
+		CardLayout cl = (CardLayout)(cards.getLayout());
+
+		if (current != blank && current != card)
+		{
+			int change = JOptionPane.showConfirmDialog(null, "Are you sure you want to switch tools?", "Confirm Switch", JOptionPane.YES_NO_OPTION);
+			if (change == JOptionPane.YES_OPTION)
+			{
+				System.out.println(cl);
+				cl.show(cards, card);
+				
+			}
+		} else
+		{
+			cl.show(cards, card);
 		}
 	}
 	
