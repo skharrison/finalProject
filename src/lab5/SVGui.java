@@ -934,7 +934,6 @@ public class SVGui extends JFrame
 			int change = JOptionPane.showConfirmDialog(null, "Are you sure you want to switch tools?", "Confirm Switch", JOptionPane.YES_NO_OPTION);
 			if (change == JOptionPane.YES_OPTION)
 			{
-				System.out.println(cl);
 				cl.show(cards, card);
 				
 			}
