@@ -12,6 +12,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTable;
@@ -77,6 +78,7 @@ public class SVGui extends JFrame
 	private final String IGV = "IGV Displayer";
 	private final String CC = "Compute Coverage";
 	private final String CST = "Color Sample Table";
+	private String current = blank;
 	private JLabel imageLabels;
 	private JButton browser;
 	private JTable imageTable;
@@ -94,8 +96,9 @@ public class SVGui extends JFrame
 	private JTextField outLabel;
 	private ProgressMonitor renderMonitor;
 	private JButton submitImages;
-	private JTextArea outputTextArea;
-	
+	private JTextArea renderText;
+	private JProgressBar bedToolProgress;
+	private JLabel bedToolOutText;
 	
 	public SVGui(String title) 
 	{
@@ -116,42 +119,11 @@ public class SVGui extends JFrame
 	
 	/* 
 	 * TODO: 
-	 * - Make actually tool bar with maybe icons on tool options
-	 * - add some kind of like tool reset button/ warning message between switching tools?
-	 * - add some kind of info/help tab explaining what each tool does and how to use 
-	 */
-	private JPanel toolsPanel() 
-	{
-		final JPanel panel = new JPanel(new CardLayout());
-		String[] toolList = {IGV, CC, CST};
-		JComboBox<String> toolCombo = new JComboBox<String>(toolList);
-		toolCombo.setSelectedIndex(-1);
-		JLabel toolText = new JLabel("Tools:");
-		ItemListener toolItemListener = new ItemListener() 
-		{
-			public void itemStateChanged(ItemEvent evt) 
-			{
-			    CardLayout cl = (CardLayout)(cards.getLayout());
-			    cl.show(cards, (String)evt.getItem());
-			}
-		};
-		toolCombo.setEditable(false);
-		toolCombo.addItemListener(toolItemListener);
-		panel.setLayout(new FlowLayout());
-		panel.add(toolText);
-		panel.add(toolCombo);
-		return panel;
-	}
-	
-
-	/*
-	 * TODO:
-	 * - Make sure file formats are in proper format (image (.png, .jpeg, .svg), have chrom,start,stop in file name)
-	 * - potentially make image rendering actually multithreaded not just in a background thread
-	 * - give progress bar of how close to completed with image rendering?
+	 * - add some kind of like tool reset button for tools
+	 * - only put warning message if tool has been used
+	 * - actually add help message and link to github for further info
 	 */
 	
-
 	private JToolBar allTools()
 	{
 		JToolBar toolBar = new JToolBar();
@@ -167,32 +139,30 @@ public class SVGui extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, IGV);	
+				switchTools(IGV);
+				current = IGV;
 			}
 			
 		});
 		
 		bedButton.addActionListener(new ActionListener() 
 		{
-
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, CC);
+				switchTools(CC);
+				current = CC;
 			}
 			
 		});
 		
 		compButton.addActionListener(new ActionListener() 
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent e) {
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, CST);
-				
+			public void actionPerformed(ActionEvent e)
+			{
+				switchTools(CST);
+				current = CST;
 			}
 			
 		});
@@ -205,10 +175,6 @@ public class SVGui extends JFrame
 		igvButton.setBorderPainted(false);
 		bedButton.setBorderPainted(false);
 		compButton.setBorderPainted(false);
-		Border blackline = BorderFactory.createLineBorder(Color.black);
-//	    igvButton.setBorder(blackline);
-//	    bedButton.setBorder(blackline);
-//	    compButton.setBorder(blackline);
 		toolBar.add(igvButton);
 		toolBar.addSeparator(new Dimension(5, 5));
 		toolBar.add(bedButton);
@@ -221,8 +187,6 @@ public class SVGui extends JFrame
         toolBar.addSeparator();
 		JButton help = new JButton("Help");
 		toolBar.add(help);
-		
-		
 		help.addActionListener(new ActionListener() 
 		{
 			@Override
@@ -238,27 +202,12 @@ public class SVGui extends JFrame
 				JOptionPane.showMessageDialog(toolBar, toolInfo);
 			}
 		});
-		return toolBar;
-		
+		return toolBar;	
 	}
-
-<<<<<<< HEAD
-	
-	
 	/*
 	 * TODO:
-	 * - Make sure file formats are in proper format (image (.png, .jpeg, .svg), have chrom,start,stop in file name)
-	 * - potentially make image rendering actually multithreaded not just in a background thread
-	 * - give progress bar of how close to completed with image rendering?
-	 */
-
-=======
-	/*
-	 * TODO:
-	 * - Make sure file formats are in proper format (image (.png, .jpeg, .svg), have chrom,start,stop and slop in file name)
 	 * - potentially make image rendering actually multithreaded not just in a background thread
 	 */
->>>>>>> branch 'master' of https://github.com/skharrison/progFinal.git
 	private JPanel igvDisplayPanel() 
 	{
 		final JPanel panel = new JPanel();
@@ -330,25 +279,24 @@ public class SVGui extends JFrame
 				}
 			}
 		});
-		
 		submitImages.setEnabled(false);
 		buttons.add(submitImages);
 		all.add(panel);
 		all.add(buttons);
-		outputTextArea = new JTextArea("",5,20);
-		all.add(outputTextArea);
+		renderText = new JTextArea("",5,20);
+		all.add(renderText);
 		return all;
 	}
-	
 	private void loadFromFile() throws IOException
 	{
-		
 		JFileChooser jfc = new JFileChooser();
+		jfc.setAcceptAllFileFilterUsed(false);
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("jpg", "png", "svg"); 
+		jfc.addChoosableFileFilter(filter); 
 		jfc.setMultiSelectionEnabled(true);
 	
 		if (jfc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
 			return;
-		
 		if( jfc.getSelectedFile() == null)
 		{
 			return;
@@ -358,8 +306,7 @@ public class SVGui extends JFrame
 		if (imageFiles != null)
 		{
 			submitImages.setEnabled(true);
-		}
-		
+		}	
 	}
 	
 	private void buildIGVTable() throws IOException
@@ -387,25 +334,20 @@ public class SVGui extends JFrame
 			model.addRow(new Object[] {chrom,start,stop,false,imgBed});
 			index++;
 		}
-		
 		JPanel buttonPanel = new JPanel();
 		JButton saveButton = new JButton("Save Checked Regions");
 		buttonPanel.add(saveButton,BorderLayout.WEST);
 		buttonPanel.setBackground(Color.cyan);
-		
 		AffineTransform affinetransform = new AffineTransform();     
 		FontRenderContext frc = new FontRenderContext(affinetransform,true,true);     
 		Font font = new Font("Courier", Font.BOLD,12);
 		int textwidth = (int)(font.getStringBounds("Strain Labels:", frc).getWidth());
-		
 		double Wleft = (width - imgSize);
 		int wl = (int) Wleft; 
 		int l = (wl - textwidth);
 		float ll = (float) l;
 		float yep = ll * .90f;
 		int left = (int) yep;
-		
-		
 		JPanel jPanel = new JPanel();
 		jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.X_AXIS));
 		JLabel label = new JLabel("Strain Labels:");
@@ -416,7 +358,6 @@ public class SVGui extends JFrame
 //		jPanel.add(hFill);
 		jPanel.add(imageLabels);
 	    Border blackline = BorderFactory.createLineBorder(Color.black);
-	    //jPanel.setBorder(blackline);
 	    buttonPanel.setBorder(blackline);
 		imageTable = new JTable(model);
 		imageTable.setRowHeight(250);
@@ -435,8 +376,6 @@ public class SVGui extends JFrame
 				getCheckedData(imageTable);
 			}
 		});
-	
-		
 		JPanel headerPanel = new JPanel();
 		headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
 		headerPanel.add(buttonPanel);
@@ -444,8 +383,6 @@ public class SVGui extends JFrame
 		JPanel wholePanel = new JPanel();
 		wholePanel.add(imageTable);
 		JScrollPane scrollPane = new JScrollPane(wholePanel);
-		//headerPanel.add(imageTable);
-		//JScrollPane scrollPane = new JScrollPane(wholePanel);
 		scrollPane.setColumnHeaderView(headerPanel);
 		cards.add(scrollPane, "Image");
 		CardLayout cl = (CardLayout)(cards.getLayout());
@@ -453,7 +390,7 @@ public class SVGui extends JFrame
 		this.setSize(screenSize);
 		
 	}
-	
+	//TODO: make labels not look shifted over
 	private void makeSampleLabel(String labels, int width)
 	{
 		String[] allLabels = labels.split(",");
@@ -557,10 +494,7 @@ public class SVGui extends JFrame
 	 * TODO:
 	 * - make bedtools command work on windows, and mac operating systems
 	 * - give error if bams or bed file malformed
-	 * - have user only be able to upload .bam files
-	 * - give some kind of progress of at least starting and stopping bedtools
 	 * - maybe add other bedtools commands and switch ability input different types of files depending on type of bedtool
-	 * - maybe add some type of bedtools help menu 
 	 * - potentially add some type of normalize coverage option by allowing checkbox of normalize and if so then can input 
 	 * a file of average coverage per bam file (would have to figure out how to determine which bam would go with what sample)
 	 */
@@ -573,7 +507,16 @@ public class SVGui extends JFrame
 		covPanel.add(multiPanel);
 		JPanel sPanel = new JPanel();
 		sPanel.add(submit);
+		bedToolProgress = new JProgressBar(0,100);
+		bedToolProgress.setStringPainted(true); 
+		bedToolProgress.setString("Processing...");      
+		bedToolProgress.setVisible(false);
 		covPanel.add(sPanel);
+		bedToolOutText = new JLabel();
+		covPanel.add(bedToolProgress);
+		covPanel.add(Box.createVerticalStrut(20));
+		covPanel.add(bedToolOutText);
+		covPanel.add(Box.createVerticalStrut(20));
 		submit.setEnabled(false);
 		submit.addActionListener(new ActionListener()
 		{
@@ -582,6 +525,9 @@ public class SVGui extends JFrame
 			{
 				try 
 				{
+					submit.setEnabled(false);
+					bedToolProgress.setVisible(true);
+					bedToolProgress.setIndeterminate(true);
 					bedCommand = makeBedMultiCommand();
 					CommandRunner myCommand = new CommandRunner();
 					bedThread = new Thread(myCommand);
@@ -593,6 +539,7 @@ public class SVGui extends JFrame
 				}
 			}
 		});
+		
 		return covPanel;
 	}
 	
@@ -690,11 +637,11 @@ public class SVGui extends JFrame
 		multiPanel.add(new JLabel("Output File: "));
 		multiPanel.add(outFile);
 		multiPanel.add(outLabel);
+		
 		return multiPanel;
 	}
 	private void loadInBams() throws IOException
 	{
-		
 		JFileChooser jfc = new JFileChooser();
 		jfc.setFileFilter(new FileFilter() 
 		{
@@ -726,10 +673,15 @@ public class SVGui extends JFrame
 		{
 			return;
 		}
+		
+		
 		File[] files = jfc.getSelectedFiles();
-		String fileText = getFileNames(files);
-		bamLabel.setText(fileText);
-		this.bamFiles = files;
+		if (files.length != 0  && files != null)
+		{
+			String fileText = getFileNames(files);
+			bamLabel.setText(fileText);
+			this.bamFiles = files;
+		}
 	}
 	
 	private String getFileNames(File[] names)
@@ -834,7 +786,6 @@ public class SVGui extends JFrame
 	
 	/* TODO:
 	 * - add in file format checking
-	 * - add in other options for coloring like by sample phylogeny or something? 
 	 * - add rendering size of table to fit screen 
 	 * - add ability to save the table with highlighting ??? not sure if possible but would be nice
 	 */
@@ -919,36 +870,28 @@ public class SVGui extends JFrame
 		{
 			
 			File file = tableFile.getSelectedFile();
-			if (file.getName().endsWith(".txt"))
-			{
-				BufferedReader reader = new BufferedReader(new FileReader(file));
-				String header = reader.readLine();
-				String[] cols = header.split("\t");
-				DefaultTableModel model = new DefaultTableModel(cols,0);
-				
-				for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
-				{
-					model.addRow(nextLine.split("\t"));
-				}
-				reader.close();
-				JTable table = new JTable();
-				table.setModel(model);
-				table.setPreferredSize(new Dimension(350,350));
-				table.setPreferredScrollableViewportSize(table.getPreferredSize());
-				table.setRowHeight(50);
-				highlightTable(table);
-				JPanel tablePanel = new JPanel();
-				tablePanel.setLayout(new GridLayout(1,0));
-				tablePanel.add(new JScrollPane(table));
-				cards.add(tablePanel, "Highlight Table");
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, "Highlight Table");
-			}
-			else
-			{
-				JOptionPane.showMessageDialog(this, "Incompatible file type. Please upload a .txt file.");
-			}
+			BufferedReader reader = new BufferedReader(new FileReader(file));
+			String header = reader.readLine();
+			String[] cols = header.split("\t");
+			DefaultTableModel model = new DefaultTableModel(cols,0);
 			
+			for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
+			{
+				model.addRow(nextLine.split("\t"));
+			}
+			reader.close();
+			JTable table = new JTable();
+			table.setModel(model);
+			table.setPreferredSize(new Dimension(350,350));
+			table.setPreferredScrollableViewportSize(table.getPreferredSize());
+			table.setRowHeight(50);
+			highlightTable(table);
+			JPanel tablePanel = new JPanel();
+			tablePanel.setLayout(new GridLayout(1,0));
+			tablePanel.add(new JScrollPane(table));
+			cards.add(tablePanel, "Highlight Table");
+			CardLayout cl = (CardLayout)(cards.getLayout());
+			cl.show(cards, "Highlight Table");
 		}
 		else 
 		{
@@ -979,6 +922,25 @@ public class SVGui extends JFrame
 		{
 			TableColumn col = table.getColumnModel().getColumn(i);
 			col.setCellRenderer(cellHighlight);
+		}
+	}
+	
+	private void switchTools(String card)
+	{
+		CardLayout cl = (CardLayout)(cards.getLayout());
+
+		if (current != blank && current != card)
+		{
+			int change = JOptionPane.showConfirmDialog(null, "Are you sure you want to switch tools?", "Confirm Switch", JOptionPane.YES_NO_OPTION);
+			if (change == JOptionPane.YES_OPTION)
+			{
+				System.out.println(cl);
+				cl.show(cards, card);
+				
+			}
+		} else
+		{
+			cl.show(cards, card);
 		}
 	}
 	
@@ -1043,14 +1005,26 @@ public class SVGui extends JFrame
 		    try
 		    {
 		        ProcessBuilder pb = new ProcessBuilder("bash", tempScript.toString());
-		        pb.inheritIO();
+//		    	Runtime run = Runtime.getRuntime();
+//		    	Process pb = run.exec(bedCommand);
+		        //pb.inheritIO();
 		        Process process = pb.start();
 		        process.waitFor();
 		    } 
 		    finally 
 		    {
-		        tempScript.delete();
-		        System.out.println("Done Making Table...");
+		        //tempScript.delete();
+		        SwingUtilities.invokeLater(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						bedToolProgress.setString("Done!");
+						bedToolProgress.setIndeterminate(false);
+						bedToolOutText.setText("Coverage file saved to: " + covOut);
+						submit.setEnabled(true);
+					}
+				});
 		    }
 		}
 
@@ -1099,7 +1073,7 @@ public class SVGui extends JFrame
 						public void run()
 						{
 							renderMonitor.setProgress(progress);
-			                  outputTextArea.setText(outputTextArea.getText() 
+			                  renderText.setText(renderText.getText() 
 			                     + String.format("Completed %d%% of task.\n", progress));
 						}
 					});
