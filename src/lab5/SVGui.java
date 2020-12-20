@@ -74,6 +74,7 @@ public class SVGui extends JFrame
 	private final String IGV = "IGV Displayer";
 	private final String CC = "Compute Coverage";
 	private final String CST = "Color Sample Table";
+	private String current = blank;
 	private JLabel imageLabels;
 	private JButton browser;
 	private JTable imageTable;
@@ -159,8 +160,8 @@ public class SVGui extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, IGV);	
+				switchTools(IGV);
+				current = IGV;
 			}
 			
 		});
@@ -171,8 +172,8 @@ public class SVGui extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, CC);
+				switchTools(CC);
+				current = CC;
 			}
 			
 		});
@@ -182,9 +183,8 @@ public class SVGui extends JFrame
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				CardLayout cl = (CardLayout)(cards.getLayout());
-				cl.show(cards, CST);
-				
+				switchTools(CST);
+				current = CST;
 			}
 			
 		});
@@ -897,6 +897,26 @@ public class SVGui extends JFrame
 			TableColumn col = table.getColumnModel().getColumn(i);
 			col.setCellRenderer(cellHighlight);
 		}
+	}
+	
+	private void switchTools(String card)
+	{
+		CardLayout cl = (CardLayout)(cards.getLayout());
+
+		if (current != blank && current != card)
+		{
+			int change = JOptionPane.showConfirmDialog(null, "Are you sure you want to switch tools?", "Confirm Switch", JOptionPane.YES_NO_OPTION);
+			if (change == JOptionPane.YES_OPTION)
+			{
+				System.out.println(cl);
+				cl.show(cards, card);
+				
+			}
+		} else
+		{
+			cl.show(cards, card);
+		}
+		
 	}
 	
 	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException 
