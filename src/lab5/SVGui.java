@@ -1021,14 +1021,14 @@ public class SVGui extends JFrame
 		}
 	}
 	
-	private void saveTable(JTable table, String filename) throws IOException
-	{
-		Dimension size = table.getSize();
-		BufferedImage myImage = new BufferedImage(size.width, size.height, BufferedImage.TYPE_INT_RGB);
-		table.paint(myImage.getGraphics());
-		ImageIO.write(myImage, "JPEG", new File(filename));
-	}
-	
+//	private void saveTable(JTable table, String filename) throws IOException
+//	{
+//		Dimension size = table.getSize();
+//		BufferedImage myImage = new BufferedImage(size.width, size.height, BufferedImage.TYPE_INT_RGB);
+//		table.paint(myImage.getGraphics());
+//		ImageIO.write(myImage, "JPEG", new File(filename));
+//	}
+//	
 	private void switchTools(String card, boolean toSwitch)
 	{
 		CardLayout cl = (CardLayout)(cards.getLayout());
