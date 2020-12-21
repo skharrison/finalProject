@@ -83,7 +83,7 @@ public class SVGui extends JFrame
 	private JButton browser;
 	private JTable imageTable;
 	private Map<Integer,List<Integer>> highlightCells;
-	private Color specifiedColor;
+	private Color specifiedColor = Color.YELLOW;
 	private JComboBox<String> colorCombo;
 	private File[] bamFiles;
 	private File bedFile;
@@ -104,7 +104,7 @@ public class SVGui extends JFrame
 	private boolean saidNo = false;
 	private boolean isTable = false;
 	
-	public SVGui(String title) 
+	public SVGui(String title)
 	{
 		super(title);
 		setLocationRelativeTo(null);
@@ -159,9 +159,6 @@ public class SVGui extends JFrame
 					bedButton.setEnabled(true);
 					compButton.setEnabled(true);
 				}
-				
-			
-			
 			}
 			
 		});
@@ -274,7 +271,8 @@ public class SVGui extends JFrame
 		//panel.setLayout(new FlowLayout());
 		panel.add(new JLabel("Upload Images"));
 		panel.add(browser, BorderLayout.CENTER);
-		JButton addLabel = new JButton("Add Strain Labels");
+		//JButton addLabel = new JButton("Add Strain Labels");
+		addLabel = new JButton("Add Strain Labels");
 		panel.setLayout(new FlowLayout());
 		panel.add(addLabel, BorderLayout.CENTER);
 		browser.setEnabled(false);
@@ -849,7 +847,7 @@ public class SVGui extends JFrame
 	 * - add ability to save the table with highlighting ??? not sure if possible but would be nice
 	 */
 	private JPanel comparePanel() {
-		String[] colors = {"Pink", "Red", "Yellow", "Green"};
+		String[] colors = {"Yellow", "Pink", "Red", "Cyan", "Green"};
 		JPanel panel = new JPanel();
 		JButton theBrowser = new JButton("Browse");
 		JLabel colorLabel = new JLabel("Highlight Color");
@@ -863,22 +861,34 @@ public class SVGui extends JFrame
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				String color = colorCombo.getSelectedItem().toString();
-				if (color == "Yellow")
+				try
+				{
+					String color = colorCombo.getSelectedItem().toString();
+					if (color == "Cyan")
+					{
+						specifiedColor = Color.CYAN;
+					}
+					else if(color == "Pink")
+					{
+						specifiedColor = Color.PINK;
+					}
+					else if(color == "Red")
+					{
+						specifiedColor = Color.RED;
+					}
+					else if (color == "Green")
+					{
+						specifiedColor = Color.GREEN;
+				}
+					else if (color == "Yellow")
+					{
+						specifiedColor = Color.YELLOW;
+					}
+				
+				}
+				catch (NullPointerException ex)
 				{
 					specifiedColor = Color.YELLOW;
-				}
-				else if(color == "Pink")
-				{
-					specifiedColor = Color.PINK;
-				}
-				else if(color == "Red")
-				{
-					specifiedColor = Color.RED;
-				}
-				else
-				{
-					specifiedColor = Color.GREEN;
 				}
 			}
 			
