@@ -287,11 +287,12 @@ public class SVGui extends JFrame
 		all.add(renderText);
 		return all;
 	}
+	
 	private void loadFromFile() throws IOException
 	{
 		JFileChooser jfc = new JFileChooser();
 		jfc.setAcceptAllFileFilterUsed(false);
-		FileNameExtensionFilter filter = new FileNameExtensionFilter("jpg", "png", "svg"); 
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("Images", "jpg", "png", "svg"); 
 		jfc.addChoosableFileFilter(filter); 
 		jfc.setMultiSelectionEnabled(true);
 	
@@ -868,7 +869,7 @@ public class SVGui extends JFrame
 
 		if (tableFile.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) 
 		{
-			
+			Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 			File file = tableFile.getSelectedFile();
 			BufferedReader reader = new BufferedReader(new FileReader(file));
 			String header = reader.readLine();
@@ -892,6 +893,7 @@ public class SVGui extends JFrame
 			cards.add(tablePanel, "Highlight Table");
 			CardLayout cl = (CardLayout)(cards.getLayout());
 			cl.show(cards, "Highlight Table");
+			this.setSize(screenSize);
 		}
 		else 
 		{
