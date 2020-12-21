@@ -960,29 +960,29 @@ public class SVGui extends JFrame
 			JPanel tablePanel = new JPanel();
 			tablePanel.setLayout(new BorderLayout());
 			tablePanel.add(new JScrollPane(table), BorderLayout.CENTER);
-			JButton saveButton = new JButton("Save as Image");
-			tablePanel.add(saveButton,BorderLayout.SOUTH);
+//			JButton saveButton = new JButton("Save as Image");
+//			tablePanel.add(saveButton,BorderLayout.SOUTH);
 			cards.add(tablePanel, "Highlight Table");
-			saveButton.addActionListener(new ActionListener() 
-			{
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					String filename = JOptionPane.showInputDialog(tablePanel,"Enter a filename for your image", null);
-
-					try {
-						if (filename != "")
-						{
-							saveTable(table, filename);
-
-						}
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-				}
-				
-			});
+//			saveButton.addActionListener(new ActionListener() 
+//			{
+//
+//				@Override
+//				public void actionPerformed(ActionEvent e) {
+//					String filename = JOptionPane.showInputDialog(tablePanel,"Enter a filename for your image", null);
+//
+//					try {
+//						if (filename != "")
+//						{
+//							saveTable(table, filename);
+//
+//						}
+//					} catch (IOException e1) {
+//						// TODO Auto-generated catch block
+//						e1.printStackTrace();
+//					}
+//				}
+//				
+//			});
 			isTable = true;
 			CardLayout cl = (CardLayout)(cards.getLayout());
 			cl.show(cards, "Highlight Table");
