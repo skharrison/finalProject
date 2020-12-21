@@ -83,7 +83,7 @@ public class SVGui extends JFrame
 	private JButton browser;
 	private JTable imageTable;
 	private Map<Integer,List<Integer>> highlightCells;
-	private Color specifiedColor;
+	private Color specifiedColor = Color.YELLOW;
 	private JComboBox<String> colorCombo;
 	private File[] bamFiles;
 	private File bedFile;
