@@ -849,7 +849,7 @@ public class SVGui extends JFrame
 	 * - add ability to save the table with highlighting ??? not sure if possible but would be nice
 	 */
 	private JPanel comparePanel() {
-		String[] colors = {"Pink", "Red", "Cyan", "Green"};
+		String[] colors = {"Yellow", "Pink", "Red", "Cyan", "Green"};
 		JPanel panel = new JPanel();
 		JButton theBrowser = new JButton("Browse");
 		JLabel colorLabel = new JLabel("Highlight Color");
@@ -882,7 +882,7 @@ public class SVGui extends JFrame
 					{
 						specifiedColor = Color.GREEN;
 				}
-					else
+					else if (color == "Yellow")
 					{
 						specifiedColor = Color.YELLOW;
 					}
