@@ -99,6 +99,10 @@ public class SVGui extends JFrame
 	private JTextArea renderText;
 	private JProgressBar bedToolProgress;
 	private JLabel bedToolOutText;
+	private JButton addLabel;
+	private boolean toSwitch;
+	private boolean saidNo = false;
+	private boolean isTable = false;
 	
 	public SVGui(String title) 
 	{
@@ -139,8 +143,25 @@ public class SVGui extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				switchTools(IGV);
-				current = IGV;
+				
+				if (! bamLabel.getText().equals("") || ! bedLabel.getText().equals("") || ! outLabel.getText().equals("") || isTable || specifiedColor != Color.YELLOW) {
+					toSwitch = true;
+					switchTools(IGV, toSwitch);
+
+				} else
+				{
+					toSwitch = false;
+					switchTools(IGV, toSwitch);
+				}
+				if (! saidNo)
+				{
+					igvButton.setEnabled(false);
+					bedButton.setEnabled(true);
+					compButton.setEnabled(true);
+				}
+				
+			
+			
 			}
 			
 		});
@@ -150,8 +171,22 @@ public class SVGui extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				switchTools(CC);
-				current = CC;
+				if (browser.isEnabled() || submitImages.isEnabled() || isTable || specifiedColor != Color.YELLOW) {
+					toSwitch = true;
+					switchTools(CC, toSwitch);
+
+				} else
+				{
+					toSwitch = false;
+					switchTools(CC, toSwitch);
+				}
+				if (! saidNo)
+				{
+					igvButton.setEnabled(true);
+					bedButton.setEnabled(false);
+					compButton.setEnabled(true);
+				}
+				
 			}
 			
 		});
@@ -161,9 +196,22 @@ public class SVGui extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				switchTools(CST);
-				current = CST;
-			}
+				if (! bamLabel.getText().equals("") || ! bedLabel.getText().equals("") || ! outLabel.getText().equals("") || browser.isEnabled() || submitImages.isEnabled()) {
+					toSwitch = true;
+					switchTools(CST, toSwitch);
+				} else
+				{
+					toSwitch = false;
+					switchTools(CST, toSwitch);
+				}
+				if (! saidNo)
+				{
+					igvButton.setEnabled(true);
+					bedButton.setEnabled(true);
+					compButton.setEnabled(false);
+				}
+				
+				}
 			
 		});
 		igvButton.setBackground(Color.pink);
@@ -185,8 +233,18 @@ public class SVGui extends JFrame
         separator.setOrientation(JSeparator.VERTICAL);
         toolBar.add(separator);
         toolBar.addSeparator();
+		JButton reset = new JButton("Reset");
 		JButton help = new JButton("Help");
+		toolBar.add(reset);
 		toolBar.add(help);
+		reset.addActionListener(new ActionListener() 
+		{
+
+			public void actionPerformed(ActionEvent e) {
+				resetTools();
+			}
+			
+		});
 		help.addActionListener(new ActionListener() 
 		{
 			@Override
@@ -927,22 +985,60 @@ public class SVGui extends JFrame
 		}
 	}
 	
-	private void switchTools(String card)
+	private void saveTable(JTable table, String filename) throws IOException
+	{
+		Dimension size = table.getSize();
+		BufferedImage myImage = new BufferedImage(size.width, size.height, BufferedImage.TYPE_INT_RGB);
+		table.paint(myImage.getGraphics());
+		ImageIO.write(myImage, "JPEG", new File(filename));
+	}
+	
+	private void switchTools(String card, boolean toSwitch)
 	{
 		CardLayout cl = (CardLayout)(cards.getLayout());
 
-		if (current != blank && current != card)
+		if (current != blank && current != card && toSwitch)
 		{
 			int change = JOptionPane.showConfirmDialog(null, "Are you sure you want to switch tools?", "Confirm Switch", JOptionPane.YES_NO_OPTION);
 			if (change == JOptionPane.YES_OPTION)
 			{
 				cl.show(cards, card);
-				
+				current = card;
+				resetTools();
+			} else if (change == JOptionPane.NO_OPTION)
+			{
+				saidNo = true;
 			}
+			
+			
 		} else
 		{
 			cl.show(cards, card);
+			current = card;
 		}
+	}
+	
+	private void resetTools()
+	{
+		CardLayout cl = (CardLayout)(cards.getLayout());
+		bamLabel.setText("");
+		bedLabel.setText("");
+		outLabel.setText("");
+		addLabel.setEnabled(true);
+		browser.setEnabled(false);
+		submitImages.setEnabled(false);
+		colorCombo.setSelectedIndex(-1);
+		isTable = false;
+		saidNo = false;
+		scaled = null;
+		imageLabels = null;
+		if (current == "Highlight Table")
+		{
+			cl.show(cards, CST);
+			current = CST;
+
+		}
+		
 	}
 	
 	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException 
