@@ -849,7 +849,7 @@ public class SVGui extends JFrame
 	 * - add ability to save the table with highlighting ??? not sure if possible but would be nice
 	 */
 	private JPanel comparePanel() {
-		String[] colors = {"Pink", "Red", "Yellow", "Green"};
+		String[] colors = {"Pink", "Red", "Cyan", "Green"};
 		JPanel panel = new JPanel();
 		JButton theBrowser = new JButton("Browse");
 		JLabel colorLabel = new JLabel("Highlight Color");
@@ -863,22 +863,34 @@ public class SVGui extends JFrame
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				String color = colorCombo.getSelectedItem().toString();
-				if (color == "Yellow")
+				try
+				{
+					String color = colorCombo.getSelectedItem().toString();
+					if (color == "Cyan")
+					{
+						specifiedColor = Color.CYAN;
+					}
+					else if(color == "Pink")
+					{
+						specifiedColor = Color.PINK;
+					}
+					else if(color == "Red")
+					{
+						specifiedColor = Color.RED;
+					}
+					else if (color == "Green")
+					{
+						specifiedColor = Color.GREEN;
+				}
+					else
+					{
+						specifiedColor = Color.YELLOW;
+					}
+				
+				}
+				catch (NullPointerException ex)
 				{
 					specifiedColor = Color.YELLOW;
-				}
-				else if(color == "Pink")
-				{
-					specifiedColor = Color.PINK;
-				}
-				else if(color == "Red")
-				{
-					specifiedColor = Color.RED;
-				}
-				else
-				{
-					specifiedColor = Color.GREEN;
 				}
 			}
 			
@@ -946,9 +958,32 @@ public class SVGui extends JFrame
 			table.setRowHeight(50);
 			highlightTable(table);
 			JPanel tablePanel = new JPanel();
-			tablePanel.setLayout(new GridLayout(1,0));
-			tablePanel.add(new JScrollPane(table));
+			tablePanel.setLayout(new BorderLayout());
+			tablePanel.add(new JScrollPane(table), BorderLayout.CENTER);
+			JButton saveButton = new JButton("Save as Image");
+			tablePanel.add(saveButton,BorderLayout.SOUTH);
 			cards.add(tablePanel, "Highlight Table");
+			saveButton.addActionListener(new ActionListener() 
+			{
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					String filename = JOptionPane.showInputDialog(tablePanel,"Enter a filename for your image", null);
+
+					try {
+						if (filename != "")
+						{
+							saveTable(table, filename);
+
+						}
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+				
+			});
+			isTable = true;
 			CardLayout cl = (CardLayout)(cards.getLayout());
 			cl.show(cards, "Highlight Table");
 			current = "Highlight Table";
