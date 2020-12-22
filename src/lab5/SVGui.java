@@ -247,14 +247,14 @@ public class SVGui extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent ev)
 			{
-				String toolInfo = new String(
-						
-					"Help: " + "\n" + "\t" + 
-							"-IGV Display Tool: " + "add how to use tool here.. " + "\n" + "\t" +
-							"-Compute Coverage Tool " + "add how to use tool here.. " + "\n" + "\t" +
-							"-Highlight Table Tool " + "add how to use tool here.. " 
-				);
-				JOptionPane.showMessageDialog(toolBar, toolInfo);
+			     try {
+					java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://github.com/skharrison/progFinal"));
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
+				
 			}
 		});
 		return toolBar;	
