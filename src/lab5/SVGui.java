@@ -59,7 +59,6 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -346,11 +345,12 @@ public class SVGui extends JFrame
 		all.add(renderText);
 		return all;
 	}
+	
 	private void loadFromFile() throws IOException
 	{
 		JFileChooser jfc = new JFileChooser();
 		jfc.setAcceptAllFileFilterUsed(false);
-		FileNameExtensionFilter filter = new FileNameExtensionFilter("jpg", "png", "svg"); 
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("Images", "jpg", "png", "svg"); 
 		jfc.addChoosableFileFilter(filter); 
 		jfc.setMultiSelectionEnabled(true);
 	
@@ -849,10 +849,11 @@ public class SVGui extends JFrame
 	 * - add ability to save the table with highlighting ??? not sure if possible but would be nice
 	 */
 	private JPanel comparePanel() {
-		String[] colors = {"Pink", "Red", "Cyan", "Green"};
+		String[] colors = {"Yellow", "Pink", "Red", "Cyan", "Green"};
 		JPanel panel = new JPanel();
 		JButton theBrowser = new JButton("Browse");
 		JLabel colorLabel = new JLabel("Highlight Color");
+		
 		colorCombo = new JComboBox<String>(colors);
 		colorCombo.setSelectedIndex(-1);
 		panel.add(new JLabel("Input Table"));
@@ -881,7 +882,7 @@ public class SVGui extends JFrame
 					{
 						specifiedColor = Color.GREEN;
 				}
-					else
+					else if (color == "Yellow")
 					{
 						specifiedColor = Color.YELLOW;
 					}
@@ -938,20 +939,12 @@ public class SVGui extends JFrame
 
 		if (tableFile.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) 
 		{
-			
+			Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 			File file = tableFile.getSelectedFile();
 			BufferedReader reader = new BufferedReader(new FileReader(file));
 			String header = reader.readLine();
 			String[] cols = header.split("\t");
-			DefaultTableModel model = new DefaultTableModel(cols,0) {
-	
-				private static final long serialVersionUID = 1L;
-
-				public boolean isCellEditable(int row, int column)
-				{
-					return false;
-				}
-			};
+			DefaultTableModel model = new DefaultTableModel(cols,0);
 			
 			for (String nextLine = reader.readLine(); nextLine != null; nextLine = reader.readLine()) 
 			{
@@ -967,35 +960,34 @@ public class SVGui extends JFrame
 			JPanel tablePanel = new JPanel();
 			tablePanel.setLayout(new BorderLayout());
 			tablePanel.add(new JScrollPane(table), BorderLayout.CENTER);
-			JButton saveButton = new JButton("Save as Image");
-			tablePanel.add(saveButton,BorderLayout.SOUTH);
+//			JButton saveButton = new JButton("Save as Image");
+//			tablePanel.add(saveButton,BorderLayout.SOUTH);
 			cards.add(tablePanel, "Highlight Table");
-			
-			saveButton.addActionListener(new ActionListener() 
-			{
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					String filename = JOptionPane.showInputDialog(tablePanel,"Enter a filename for your image", null);
-
-					try {
-						if (filename != "")
-						{
-							saveTable(table, filename);
-
-						}
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-				}
-				
-			});
-			
+//			saveButton.addActionListener(new ActionListener() 
+//			{
+//
+//				@Override
+//				public void actionPerformed(ActionEvent e) {
+//					String filename = JOptionPane.showInputDialog(tablePanel,"Enter a filename for your image", null);
+//
+//					try {
+//						if (filename != "")
+//						{
+//							saveTable(table, filename);
+//
+//						}
+//					} catch (IOException e1) {
+//						// TODO Auto-generated catch block
+//						e1.printStackTrace();
+//					}
+//				}
+//				
+//			});
 			isTable = true;
 			CardLayout cl = (CardLayout)(cards.getLayout());
 			cl.show(cards, "Highlight Table");
 			current = "Highlight Table";
+			this.setSize(screenSize);
 		}
 		else 
 		{
@@ -1029,14 +1021,14 @@ public class SVGui extends JFrame
 		}
 	}
 	
-	private void saveTable(JTable table, String filename) throws IOException
-	{
-		Dimension size = table.getSize();
-		BufferedImage myImage = new BufferedImage(size.width, size.height, BufferedImage.TYPE_INT_RGB);
-		table.paint(myImage.getGraphics());
-		ImageIO.write(myImage, "JPEG", new File(filename));
-	}
-	
+//	private void saveTable(JTable table, String filename) throws IOException
+//	{
+//		Dimension size = table.getSize();
+//		BufferedImage myImage = new BufferedImage(size.width, size.height, BufferedImage.TYPE_INT_RGB);
+//		table.paint(myImage.getGraphics());
+//		ImageIO.write(myImage, "JPEG", new File(filename));
+//	}
+//	
 	private void switchTools(String card, boolean toSwitch)
 	{
 		CardLayout cl = (CardLayout)(cards.getLayout());
