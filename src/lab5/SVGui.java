@@ -1079,6 +1079,7 @@ public class SVGui extends JFrame
 		imageLabels = null;
 		bedToolProgress.setVisible(false);
 		bedToolOutText.setText("");
+		renderText.setText("");
 		if (current == "Highlight Table")
 		{
 			cl.show(cards, CST);
