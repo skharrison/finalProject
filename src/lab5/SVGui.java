@@ -79,7 +79,7 @@ public class SVGui extends JFrame
 	private final String CC = "Compute Coverage";
 	private final String CST = "Color Sample Table";
 	private String current = blank;
-	private JLabel imageLabels;
+	private JTextField imageLabels;
 	private JButton browser;
 	private JTable imageTable;
 	private Map<Integer,List<Integer>> highlightCells;
@@ -104,11 +104,11 @@ public class SVGui extends JFrame
 	private boolean saidNo = false;
 	private boolean isTable = false;
 	
-	public SVGui(String title) 
+	public SVGui(String title)
 	{
 		super(title);
 		setLocationRelativeTo(null);
-		setSize(700,400);
+		setSize(700,300);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		cards = new JPanel(new CardLayout());
 		cards.add(new JPanel(),blank);
@@ -159,9 +159,6 @@ public class SVGui extends JFrame
 					bedButton.setEnabled(true);
 					compButton.setEnabled(true);
 				}
-				
-			
-			
 			}
 			
 		});
@@ -274,6 +271,8 @@ public class SVGui extends JFrame
 		//panel.setLayout(new FlowLayout());
 		panel.add(new JLabel("Upload Images"));
 		panel.add(browser, BorderLayout.CENTER);
+
+		//JButton addLabel = new JButton("Add Strain Labels");
 		addLabel = new JButton("Add Strain Labels");
 		panel.setLayout(new FlowLayout());
 		panel.add(addLabel, BorderLayout.CENTER);
@@ -483,10 +482,10 @@ public class SVGui extends JFrame
 		}
 		
 		String finalLabel = String.join("",ll);
-		JLabel label = new JLabel(finalLabel);
-		label.setFont(font);
+		imageLabels = new JTextField(finalLabel);
+		imageLabels.setFont(font);
 		browser.setEnabled(true);
-		imageLabels = label;
+		//imageLabels = label;
 	}
 	
 	private void getCheckedData(JTable table)
@@ -559,6 +558,7 @@ public class SVGui extends JFrame
 	 */
 	private JPanel compCovPanel() 
 	{
+		
 		JPanel covPanel = new JPanel();
 		covPanel.setLayout(new BoxLayout(covPanel, BoxLayout.Y_AXIS));
 		submit = new JButton("Submit");
@@ -956,12 +956,15 @@ public class SVGui extends JFrame
 			table.setPreferredSize(new Dimension(350,350));
 			table.setPreferredScrollableViewportSize(table.getPreferredSize());
 			table.setRowHeight(50);
+			table.setRowHeight(50);
 			highlightTable(table);
 			JPanel tablePanel = new JPanel();
 			tablePanel.setLayout(new BorderLayout());
 			tablePanel.add(new JScrollPane(table), BorderLayout.CENTER);
 //			JButton saveButton = new JButton("Save as Image");
 //			tablePanel.add(saveButton,BorderLayout.SOUTH);
+			JButton saveButton = new JButton("Save as Image");
+			tablePanel.add(saveButton,BorderLayout.SOUTH);
 			cards.add(tablePanel, "Highlight Table");
 //			saveButton.addActionListener(new ActionListener() 
 //			{
@@ -983,6 +986,9 @@ public class SVGui extends JFrame
 //				}
 //				
 //			});
+			
+			
+			
 			isTable = true;
 			CardLayout cl = (CardLayout)(cards.getLayout());
 			cl.show(cards, "Highlight Table");
@@ -993,6 +999,7 @@ public class SVGui extends JFrame
 		{
 		}
 	}
+	
 	
 	private void highlightTable(JTable table) 
 	{
@@ -1041,6 +1048,7 @@ public class SVGui extends JFrame
 				cl.show(cards, card);
 				current = card;
 				resetTools();
+				setSize(700,300);
 			} else if (change == JOptionPane.NO_OPTION)
 			{
 				saidNo = true;
@@ -1049,6 +1057,7 @@ public class SVGui extends JFrame
 			
 		} else
 		{
+			
 			cl.show(cards, card);
 			current = card;
 		}
@@ -1068,6 +1077,8 @@ public class SVGui extends JFrame
 		saidNo = false;
 		scaled = null;
 		imageLabels = null;
+		bedToolProgress.setVisible(false);
+		bedToolOutText.setText("");
 		if (current == "Highlight Table")
 		{
 			cl.show(cards, CST);
