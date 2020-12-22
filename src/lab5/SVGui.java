@@ -348,9 +348,11 @@ public class SVGui extends JFrame
 	private void loadFromFile() throws IOException
 	{
 		JFileChooser jfc = new JFileChooser();
-		jfc.setAcceptAllFileFilterUsed(false);
 		FileNameExtensionFilter filter = new FileNameExtensionFilter("Images", "jpg", "png", "svg"); 
+
 		jfc.addChoosableFileFilter(filter); 
+		jfc.setAcceptAllFileFilterUsed(true);
+
 		jfc.setMultiSelectionEnabled(true);
 	
 		if (jfc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
