@@ -1,4 +1,4 @@
-package lab5;
+package svproject;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;

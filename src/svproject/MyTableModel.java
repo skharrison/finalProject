@@ -1,4 +1,4 @@
-package lab5;
+package svproject;
 
 import java.util.Vector;
 
