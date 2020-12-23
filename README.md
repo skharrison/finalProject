@@ -2,8 +2,8 @@
 
 # Structural Variant Analysis GUI
 
-* Repo containing java swing GUI built specifically for analyzing components of structural variant calling/validation pipeline. Made for bioinformatics advanced programming final project at UNCC. 
-* GUI contains three tools IGV Displayer, Compute Coverage, and Color Sample Table. Each Described below. 
+* Repo containing a java swing GUI built specifically for analyzing components of our structural variant calling/validation pipeline. Made for bioinformatics advanced programming final project at UNCC. 
+* GUI contains three tools: IGV Displayer, Compute Coverage, and Color Sample Table. Each tool is described below. 
 
 ### IGV Displayer 
 
