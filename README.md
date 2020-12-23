@@ -37,7 +37,7 @@ for photo in *.png ; do convert $photo -rotate 90 $photo ; done
 ### Compute Coverage
 * Tool to run coverage analysis of a set of sample bams for a specific bam file. 
 * Purpose is to be able to determine coverage of regions that might have SV in order as this would likely influence coverage in those regions for samples           containing the variant.
-* This tool is running the bedtools multicov command. (**MUST HAVE BEDTOOLS PREINSTALLED**). 
+* This tool is running the bedtools multicov command. (**MUST HAVE BEDTOOLS PRE-INSTALLED**). 
 
 #### HOW TO USE:
 -----------
