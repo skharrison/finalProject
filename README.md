@@ -12,4 +12,5 @@
 
 ### Color Sample Table 
 
+Input a table containing the variants, all samples, and normalized coverage values. Given a choice of highlighting color (with default color yellow), the tool highlights samples that have the specific variant.
 
