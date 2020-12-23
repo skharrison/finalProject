@@ -267,11 +267,8 @@ public class SVGui extends JFrame
 		final JPanel panel = new JPanel();
 		final JPanel all = new JPanel();
 		browser = new JButton("Browse");
-		//panel.setLayout(new FlowLayout());
 		panel.add(new JLabel("Upload Images"));
 		panel.add(browser, BorderLayout.CENTER);
-
-		//JButton addLabel = new JButton("Add Strain Labels");
 		addLabel = new JButton("Add Strain Labels");
 		panel.setLayout(new FlowLayout());
 		panel.add(addLabel, BorderLayout.CENTER);
