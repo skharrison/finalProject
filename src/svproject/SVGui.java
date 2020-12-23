@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -113,7 +112,11 @@ public class SVGui extends JFrame
 		getContentPane().add(cards, BorderLayout.CENTER);
 		setVisible(true);
 	}
-
+	
+ /* buttons for each tool, button is hidden if currently on tool, dialog box 
+  * to confirm switch will appear if you tool is being used, reset button to reset to default 
+  * tool, help button that takes you to github page
+  */
 	private JToolBar allTools()
 	{
 		JToolBar toolBar = new JToolBar();
@@ -229,6 +232,10 @@ public class SVGui extends JFrame
 		return toolBar;
 	}
 
+	/* Sets up igvDisplayTool panel
+	 * User must first upload strain labels, which enables them to pick the images
+	 * Once both are chosen user can hit view images which will start the ImageRendering background thread
+	 */
 	private JPanel igvDisplayPanel()
 	{
 		final JPanel panel = new JPanel();
@@ -305,11 +312,12 @@ public class SVGui extends JFrame
 		all.add(renderText);
 		return all;
 	}
-
+	
+	//allows user to input IGV images want to display 
 	private void loadFromFile() throws IOException
 	{
 		JFileChooser jfc = new JFileChooser();
-		FileNameExtensionFilter filter = new FileNameExtensionFilter("Images", "jpg", "png", "svg");
+		FileNameExtensionFilter filter = new FileNameExtensionFilter(".png, .jpg, .svg", "jpg", "png", "svg");
 		jfc.addChoosableFileFilter(filter);
 		jfc.setAcceptAllFileFilterUsed(true);
 		jfc.setMultiSelectionEnabled(true);
@@ -326,7 +334,10 @@ public class SVGui extends JFrame
 			submitImages.setEnabled(true);
 		}
 	}
-
+	
+	/* Sets up image display panel utilizing screensize to display images as big as possible
+	 * Uses file names to make region info columns and inputs imageIcons
+	 */
 	private void buildIGVTable() throws IOException
 	{
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -402,10 +413,14 @@ public class SVGui extends JFrame
 		scrollPane.setColumnHeaderView(headerPanel);
 		cards.add(scrollPane, "Image");
 		CardLayout cl = (CardLayout)(cards.getLayout());
-		cl.show(cards, "Image");
+		cl.show(cards, "Image"); //adds new table panel to card layout
+		current = "Image";
 		this.setSize(screenSize);
 	}
 
+	/*  Takes string output from addLabel button and creates text field of labels based on screen size
+	 * 	Uses number of samples input to try to estimate how much space to put between each so will properly fit above image
+q	 */
 	private void makeSampleLabel(String labels, int width)
 	{
 		String[] allLabels = labels.split(",");
@@ -442,6 +457,7 @@ public class SVGui extends JFrame
 		browser.setEnabled(true);
 	}
 
+	//Allows user to save all regions that have been checked in the table to a new bed file
 	private void getCheckedData(JTable table)
 	{
 		JFileChooser jfc = new JFileChooser();
@@ -486,6 +502,7 @@ public class SVGui extends JFrame
 		}
 	}
 
+	//Renders images based on desired height and width
 	private Image getScaledImage(Image srcImg, int w, int h)
 	{
 		BufferedImage resizedImg = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
@@ -495,7 +512,8 @@ public class SVGui extends JFrame
 		g2.dispose();
 		return resizedImg;
 	}
-
+	
+	//Gets all components from makeMultiPanel and adds submit and progress monitor
 	private JPanel compCovPanel()
 	{
 		JPanel covPanel = new JPanel();
@@ -527,7 +545,7 @@ public class SVGui extends JFrame
 					bedToolProgress.setVisible(true);
 					bedToolProgress.setIndeterminate(true);
 					bedCommand = makeBedMultiCommand();
-					CommandRunner myCommand = new CommandRunner();
+					CommandRunner myCommand = new CommandRunner(); //command runner started from submit
 					bedThread = new Thread(myCommand);
 					bedThread.start();
 				}
@@ -540,10 +558,12 @@ public class SVGui extends JFrame
 		return covPanel;
 	}
 
+	//Sets up panel for computing coverage panel, user cannot click submit until all necessary files chosen
+	//Made cobo box because want to go back and add other bedtools commands like igv and not just be multicov tool
 	private JPanel makeMultiPanel()
 	{
 		JLabel lbl = new JLabel("Bedtools Option: ");
-		String[] choices = { "multicov", "igv"};
+		String[] choices = { "multicov"};
 		JComboBox<String> cb = new JComboBox<String>(choices);
 		JPanel multiPanel = new JPanel();
 		multiPanel.setLayout(new GridLayout(4,3));
@@ -626,6 +646,7 @@ public class SVGui extends JFrame
 		return multiPanel;
 	}
 
+	//allows user to load in bam files 
 	private void loadInBams() throws IOException
 	{
 		JFileChooser jfc = new JFileChooser();
@@ -663,6 +684,7 @@ public class SVGui extends JFrame
 		}
 	}
 
+	//makes a list of files a string so can be displayed in textfield 
 	private String getFileNames(File[] names)
 	{
 		List<String> files = new ArrayList<String>();
@@ -675,6 +697,7 @@ public class SVGui extends JFrame
 		return myFiles;
 	}
 
+	//allows user to load in bed file
 	private void loadBed() throws IOException
 	{
 		JFileChooser jfc = new JFileChooser();
@@ -705,6 +728,7 @@ public class SVGui extends JFrame
 		}
 	}
 
+	// allows user to choose output file for bed coverage
 	private void chooseOutput() throws IOException
 	{
 		JFileChooser jfc = new JFileChooser();
@@ -728,7 +752,8 @@ public class SVGui extends JFrame
 		String text = chosenFile.toString();
 		outLabel.setText(text);
 	}
-
+	
+	// Takes file input and creates string command to be used in CommandRunner 
 	private String makeBedMultiCommand()
 	{
 		StringBuffer allBams = new StringBuffer();
@@ -747,7 +772,8 @@ public class SVGui extends JFrame
 		System.out.println(theCommand);
 		return theCommand;
 	}
-
+	
+	//components for the compare sample table
 	private JPanel comparePanel() {
 		String[] colors = {"Yellow", "Pink", "Red", "Cyan", "Green"};
 		JPanel panel = new JPanel();
@@ -808,7 +834,8 @@ public class SVGui extends JFrame
 		panel.add(colorCombo);
 		return panel;
 	}
-
+	
+	//filechooser defaults to .txt, sets up table and calls highlight method
 	private void selectTable() throws IOException
 	{
 		JFileChooser tableFile = new JFileChooser();
@@ -902,7 +929,7 @@ public class SVGui extends JFrame
 		CardLayout cl = (CardLayout)(cards.getLayout());
 		if (current != blank && current != card && toSwitch)
 		{
-			int change = JOptionPane.showConfirmDialog(null, "Are you sure you want to switch tools?", "Confirm Switch", JOptionPane.YES_NO_OPTION);
+			int change = JOptionPane.showConfirmDialog(this, "Are you sure you want to switch tools?", "Confirm Switch", JOptionPane.YES_NO_OPTION);
 			if (change == JOptionPane.YES_OPTION)
 			{
 				cl.show(cards, card);
@@ -986,6 +1013,7 @@ public class SVGui extends JFrame
 		}
 	}
 
+	//background thread class for running bedtools
 	private class CommandRunner implements Runnable
 	{
 		@Override
@@ -998,18 +1026,28 @@ public class SVGui extends JFrame
 			catch (Exception e)
 			{
 				e.printStackTrace();
+				System.out.println("Problem occured when trying to run bedtools...check to make sure installed properly");
 			}
 		}
-		public void executeCommands() throws IOException, InterruptedException {
+		// method for running script 
+		public void executeCommands() throws IOException, InterruptedException 
+		{
 		    File tempScript = createTempScript();
+		    
 		    try
 		    {
 		        ProcessBuilder pb = new ProcessBuilder("bash", tempScript.toString());
 		        Process process = pb.start();
 		        process.waitFor();
 		    }
+		    catch (Exception e)
+		    {
+		    	e.printStackTrace();
+		    	System.out.println("Problem occured when trying running script for bedtools");
+		    }
 		    finally
 		    {
+		    	tempScript.delete();
 		        SwingUtilities.invokeLater(new Runnable()
 				{
 					@Override
@@ -1023,6 +1061,7 @@ public class SVGui extends JFrame
 				});
 		    }
 		}
+		// creates a script using the bedcommands created by user file selections 
 		public File createTempScript() throws IOException
 		{
 		    File tempScript = File.createTempFile("script", null);
@@ -1034,7 +1073,8 @@ public class SVGui extends JFrame
 		    return tempScript;
 		}
 	}
-
+	
+	//background image render thread 
 	private class ImageRender implements Runnable
 	{
 		private final int imgWidth;
@@ -1043,7 +1083,7 @@ public class SVGui extends JFrame
 			Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 			double width = screenSize.getWidth();
 			double imgSize = width * .85;
-			imgWidth = (int) imgSize;
+			imgWidth = (int) imgSize; //uses screen size to determine how wide images should be rendered 
 		}
 		@Override
 		public void run()
@@ -1052,19 +1092,19 @@ public class SVGui extends JFrame
 			{
 				final List<ImageIcon> list = new ArrayList<ImageIcon>();
 				int i = 0;
-				for (File f : imageFiles)
+				for (File f : imageFiles) //iterates through each image file 
 				{
 					final int progress=i;
 					Image img = ImageIO.read(f);
-					Image scale = getScaledImage(img, imgWidth,250);
-					ImageIcon imgI = new ImageIcon(scale);
-					list.add(imgI);
+					Image scale = getScaledImage(img, imgWidth,250); //calls scaling method
+					ImageIcon imgI = new ImageIcon(scale); //makes an image icon out of image 
+					list.add(imgI); 
 					SwingUtilities.invokeLater(new Runnable()
 					{
 						@Override
 						public void run()
 						{
-							renderMonitor.setProgress(progress);
+							renderMonitor.setProgress(progress); //monitors progress of image rendering 
 			                  renderText.setText(renderText.getText()
 			                     + String.format("Completed %d%% of task.\n", progress));
 						}
@@ -1076,10 +1116,10 @@ public class SVGui extends JFrame
 					@Override
 					public void run()
 					{
-						scaled = list;
+						scaled = list; //once finished rendering scaled is set to the new list of imageicons
 						try
 						{
-							buildIGVTable();
+							buildIGVTable(); //calls method for building the table panel 
 						}
 						catch (IOException e)
 						{
