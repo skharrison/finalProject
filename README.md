@@ -4,6 +4,7 @@
 
 * Repo containing a java swing GUI built specifically for analyzing components of our structural variant calling/validation pipeline. Made for bioinformatics advanced programming final project at UNCC. 
 * GUI contains three tools: IGV Displayer, Compute Coverage, and Color Sample Table. Each tool is described below. 
+* Quick youtube demo showing what tool does [here](https://www.youtube.com/watch?v=kPWZuFNhOJI&feature=youtu.be)
 
 ## IGV Displayer 
 * Tool to display images taken of specific genomic regions taken inside of [IGV](https://github.com/igvteam/igv) of a set of samples. Specifically for regions suspected to have a structural variant. 
