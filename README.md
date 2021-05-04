@@ -8,7 +8,7 @@
 
 ## IGV Displayer 
 * Tool to display images taken of specific genomic regions taken inside of [IGV](https://github.com/igvteam/igv) of a set of samples. Specifically for regions suspected to have a structural variant. 
-* Description of pipeline for the generation of variant calls [here](https://github.com/skharrison/SV).   
+* Description of pipeline for the generation of variant calls [here](https://github.com/skharrison/svPIPE).   
 
 #### HOW TO USE:
 ---------------
